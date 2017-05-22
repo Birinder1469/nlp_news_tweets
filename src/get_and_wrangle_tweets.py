@@ -174,6 +174,9 @@ def remove_old_tweets(all_tweets, cutoff):
     # Remove all tweets that are older than the cutoff. (Default 24 hours.)
     all_tweets = all_tweets[all_tweets['utc_created_at'] > cutoff]
 
+    # Reorder the tweets by their creation time.
+    all_tweets = all_tweets.sort_values(by = 'utc_created_at', ascending = False)
+
     # Reset the index.
     all_tweets = all_tweets.reset_index(drop = True)
 
