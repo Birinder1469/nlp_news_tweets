@@ -15,10 +15,10 @@ import time
 import tweepy
 
 # Read in the consumer key, consumer secret, access token, and access token secret.
-consumer_key = open("../../auth/twitter/consumer_key.txt").read()[:-2]
-consumer_secret = open("../../auth/twitter/consumer_secret.txt").read()[:-2]
-access_token = open("../../auth/twitter/access_token.txt").read()[:-2]
-access_token_secret = open("../../auth/twitter/access_token_secret.txt").read()[:-2]
+consumer_key = open("../../auth/twitter/consumer_key.txt").read()[:-1]
+consumer_secret = open("../../auth/twitter/consumer_secret.txt").read()[:-1]
+access_token = open("../../auth/twitter/access_token.txt").read()[:-1]
+access_token_secret = open("../../auth/twitter/access_token_secret.txt").read()[:-1]
 
 # Define the users of interest.
 users = ['nytimes',
@@ -51,6 +51,7 @@ users = ['nytimes',
 def get_and_wrangle(consumer_key, consumer_secret, access_token, access_token_secret, users):
 
     # Authenticate the API.
+    print("Authenticating...")
     api = authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret)
 
     # Save the current time, and the cutoff time for keeping old tweets.
@@ -58,18 +59,21 @@ def get_and_wrangle(consumer_key, consumer_secret, access_token, access_token_se
     cutoff_time = (datetime.utcnow() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
 
     # Query the Twitter API to get the most recent tweets from the users of interest.
+    print("Getting tweets...")
     new_tweets = query_tweets(api = api, users = users)
 
     # Convert the tweets from JSON to a pandas dataframe.
+    print("Wrangling tweets...")
     tidy_new_tweets = wrangle_new_tweets(new_tweets = new_tweets)
 
     # Read in the previously stored tweets.
+    print("Combining with old tweets...")
     old_tweets = pd.read_csv('../data/candidate_tweets.csv')
 
     # Combine the new data with the old data, and remove duplicate tweets.
-    all_tweets = (tidy_new_tweets.pipe(append(old_tweets))
-                                 .pipe(drop_duplicates(subset = 'tweet_url'))
-                                 .pipe(reset_index(drop = True)))
+    all_tweets = (tidy_new_tweets.append(other = old_tweets)
+                                 .drop_duplicates(subset = 'tweet_url')
+                                 .reset_index(drop = True))
 
     # Remove any tweets that are older than 24 hours.
     recent_tweets = remove_old_tweets(all_tweets, cutoff = cutoff_time)
@@ -111,16 +115,17 @@ def query_tweets(api, users):
         this_user_recent_tweets = api.user_timeline(user_id = this_user.id)
 
         # For each of their recent tweets, convert to JSON and store in a list.
-        recent_tweets_json = list(map(get_tweet_json, list(range(len(recent_tweets)))))
+        recent_tweets_json = list(map(get_tweet_json, this_user_recent_tweets))
+        #recent_tweets_json = list(map(get_tweet_json, list(range(len(this_user_recent_tweets)))))
 
         # Append that list to the overall list of tweets.
-        tweets_data.append(recent_tweets_json)
+        tweets_data += recent_tweets_json
 
     return(tweets_data)
 
 # For a given user, convert a single tweet to JSON.
 def get_tweet_json(tweet):
-    json_str = json.dumps(this_user_recent_tweets[tweet]._json)
+    json_str = json.dumps(tweet._json)
     tweet = json.loads(json_str)
     return(tweet)
 
@@ -131,28 +136,28 @@ def wrangle_new_tweets(new_tweets):
     tweets = pd.DataFrame()
 
     # Get when the tweet was created.
-    tweets['created_at'] = list(map(lambda tweet: tweet['created_at'], tweets_data))
+    tweets['created_at'] = list(map(lambda tweet: tweet['created_at'], new_tweets))
 
     # Get the UTC offset, so that times can be correctly compared.
-    tweets['utc_offset'] = list(map(lambda tweet: tweet['user']['utc_offset'], tweets_data))
+    tweets['utc_offset'] = list(map(lambda tweet: tweet['user']['utc_offset'], new_tweets))
 
     # Get the text in the tweet.
-    tweets['text'] = list(map(lambda tweet: tweet['text'], tweets_data))
+    tweets['text'] = list(map(lambda tweet: tweet['text'], new_tweets))
 
     # Get the url of the tweet itself.
-    tweets['tweet_url'] = list(map(get_url, tweets_data))
+    tweets['tweet_url'] = list(map(get_url, new_tweets))
 
     # Get the user's screen name.
-    tweets['screen_name'] = list(map(lambda tweet: tweet['user']['screen_name'], tweets_data))
+    tweets['screen_name'] = list(map(lambda tweet: tweet['user']['screen_name'], new_tweets))
 
     # Get the user's username.
-    tweets['name'] = list(map(lambda tweet: tweet['user']['name'], tweets_data))
+    tweets['name'] = list(map(lambda tweet: tweet['user']['name'], new_tweets))
 
     # Get the number of times the tweet was retweeted.
-    tweets['retweet_count'] = list(map(lambda tweet: tweet['retweet_count'], tweets_data))
+    tweets['retweet_count'] = list(map(lambda tweet: tweet['retweet_count'], new_tweets))
 
     # Get the number of times the tweet was favorited.
-    tweets['favorite_count'] = list(map(lambda tweet: tweet['favorite_count'], tweets_data))
+    tweets['favorite_count'] = list(map(lambda tweet: tweet['favorite_count'], new_tweets))
 
     return(tweets)
 
@@ -163,7 +168,8 @@ def get_url(tweet):
 def remove_old_tweets(all_tweets, cutoff):
 
     # Convert the created_at variable to UTC.
-    all_tweets['utc_created_at'] = list(map(tweet_time_to_utc, list(range(len(all_tweets)))))
+    #all_tweets['utc_created_at'] = list(map(tweet_time_to_utc, list(range(len(all_tweets)))))
+    all_tweets['utc_created_at'] = all_tweets.apply(tweet_time_to_utc, 1)
 
     # Remove all tweets that are older than the cutoff. (Default 24 hours.)
     all_tweets = all_tweets[all_tweets['utc_created_at'] > cutoff]
@@ -176,9 +182,8 @@ def remove_old_tweets(all_tweets, cutoff):
 # Convert the time of the tweets to a proper datetime.
 def tweet_time_to_utc(tweet):
     newtime = datetime.strptime(
-        recent_tweets['created_at'][tweet],
-        '%a %b %d %H:%M:%S +0000 %Y') +
-        timedelta(seconds = int(recent_tweets['utc_offset'][tweet])
+        tweet['created_at'],
+        '%a %b %d %H:%M:%S +0000 %Y') + timedelta(seconds = int(tweet['utc_offset'])
     )
     return(newtime)
 
