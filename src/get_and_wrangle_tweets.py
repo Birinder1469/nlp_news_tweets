@@ -182,11 +182,10 @@ def remove_old_tweets(all_tweets, cutoff):
 
     return(all_tweets)
 
-# Convert the time of the tweets to a proper datetime.
-def tweet_time_to_utc(tweet):
+# Convert the time of a tweet to a UTC timestamp.
+def tweet_time_to_timestamp(tweet):
     newtime = datetime.strptime(
-        tweet['created_at'],
-        '%a %b %d %H:%M:%S +0000 %Y') + timedelta(seconds = int(tweet['utc_offset'])
+        tweet['created_at'], '%a %b %d %H:%M:%S +0000 %Y'
     )
     return(newtime)
 
