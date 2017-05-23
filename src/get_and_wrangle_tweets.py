@@ -159,28 +159,39 @@ def wrangle_new_tweets(new_tweets):
     # Get the number of times the tweet was favorited.
     tweets['favorite_count'] = list(map(lambda tweet: tweet['favorite_count'], new_tweets))
 
+    # Get the retweet status.
+    tweets['is_retweet'] = list(map(check_is_retweet, tweets_data))
+
     return(tweets)
 
 # Get the URL of a tweet even if it's a retweet.
 def get_url(tweet):
     return("https://twitter.com/" + tweet['user']['screen_name'] + "/status/" + tweet['id_str'])
 
+# Check if a tweet is a retweet.
+def check_is_retweet(tweet):
+    try:
+        exists = tweet['retweeted_status']
+        return True
+    except:
+        return False
+
 def remove_old_tweets(all_tweets, cutoff):
 
-    # Convert the created_at variable to UTC.
-    #all_tweets['utc_created_at'] = list(map(tweet_time_to_utc, list(range(len(all_tweets)))))
-    all_tweets['utc_created_at'] = all_tweets.apply(tweet_time_to_utc, 1)
+    # Convert the created_at variable to a timestamp.
+    all_tweets['created_at_stamp'] = all_tweets.apply(tweet_time_to_timestamp, 1)
 
     # Remove all tweets that are older than the cutoff. (Default 24 hours.)
-    all_tweets = all_tweets[all_tweets['utc_created_at'] > cutoff]
+    all_tweets = all_tweets[all_tweets['created_at_stamp'] > cutoff]
 
     # Reorder the tweets by their creation time.
-    all_tweets = all_tweets.sort_values(by = 'utc_created_at', ascending = False)
+    all_tweets = all_tweets.sort_values(by = 'created_at_stamp', ascending = False)
 
     # Reset the index.
     all_tweets = all_tweets.reset_index(drop = True)
 
     return(all_tweets)
+
 
 # Convert the time of a tweet to a UTC timestamp.
 def tweet_time_to_timestamp(tweet):
