@@ -160,7 +160,7 @@ def wrangle_new_tweets(new_tweets):
     tweets['favorite_count'] = list(map(lambda tweet: tweet['favorite_count'], new_tweets))
 
     # Get the retweet status.
-    tweets['is_retweet'] = list(map(check_is_retweet, tweets_data))
+    tweets['is_retweet'] = list(map(check_is_retweet, new_tweets))
 
     return(tweets)
 

@@ -19,7 +19,7 @@ retweet_weight <- 0.1
 time_diff_now_weight <- 0.4
 
 # To make the notification score more interpretable, enforce a rule that all the weights must add up to 1.
-assert_that(sum(conform_weight, fav_weight, retweet_weight, time_diff_now_weight) == 1)
+assert_that(sum(conform_weight, favorite_weight, retweet_weight, time_diff_now_weight) == 1)
 
 #' Cluster the candidate tweets and identify which ones are most worthy of notifying users.
 #' 
@@ -35,18 +35,25 @@ cluster_and_notify <- function(conform_weight = 0.4, favorite_weight = 0.1, retw
         # Get one word per row, and clean out uninformative words.
         cleaned_tweet_words <- clean_tweets(tweets)
         
-        # Find the tweets that share the greatest number of words
-        # with the greatest number of unique authors.
-        # (The assumption is that these tweets are the most representative
-        # of events that everyone is talking about.)
-        tweets_w_conform_score <- compute_conform_score(cleaned_tweet_words, tweets)
+        # Compute the difference between each tweet's creation time and now.
+        time_now <- now("UTC")
+        tweets_w_time_diff_now <- tweets %>%
+                mutate(time_diff_now = as.numeric(time_now - parse_date_time(created_at_stamp, "Ymd HMS")))
+        
+        # Assign a score to each tweet according to how much it conforms with words used in tweets
+        # by other authors. (This finds tweets that are representative of events that everyone
+        # is talking about.)
+        tweets_w_conform_score <- compute_conform_score(cleaned_tweet_words, tweets = tweets_w_time_diff_now)
         
         # Assign a score to each tweet that corresponds with its worthiness for sending a notification.
-        tweets_w_notif_score <- compute_notif_score(tweets_w_conform_score = tweets_w_conform_score,
+        tweets_w_notif_score <- compute_notif_score(tweets = tweets_w_conform_score,
                                                     conform_weight = conform_weight,
-                                                    favorite_weight = fav_weight,
+                                                    favorite_weight = favorite_weight,
                                                     retweet_weight = retweet_weight,
                                                     time_diff_now_weight = time_diff_now_weight)
+        
+        # Print the top tweets.
+        tweets_w_notif_score %>% arrange(desc(notif_score)) %>% select(text) %>% head() %>% print()
         
 }
 
@@ -88,7 +95,7 @@ clean_tweets <- function(tweets) {
 #' @return The full tweets dataframe, including a new column that shows a measure of conformity.
 #' @examples
 #' compute_conform_score(cleaned_tweet_words, tweets)
-compute_conform_score(cleaned_tweet_words, tweets) {
+compute_conform_score <- function(cleaned_tweet_words, tweets) {
         
         tweets_w_conform_score <- cleaned_tweet_words %>%
                 
@@ -118,16 +125,17 @@ compute_conform_score(cleaned_tweet_words, tweets) {
 #' @return A dataframe with one row per word, excluding stop words and other uninformative words.
 #' @examples
 #' compute_notif_score(tweets_w_conform_score)
-compute_notif_score(tweets_w_conform_score, conform_weight, favorite_weight, retweet_weight, time_diff_now_weight) {
+compute_notif_score <- function(tweets, conform_weight, favorite_weight, retweet_weight, time_diff_now_weight) {
         
-        # Compute the maximum values of the conformity score, the favorite count, and the retweet count.
+        # Compute the maximum values of the conformity score, the favorite count, the retweet count, and the time since creation.
         # (This is done to normalize the variables in the notification score.)
-        conform_max <- max(tweets_w_conform_score$conform_score)
-        favorite_max <- max(tweets_w_conform_score$favorite_count)
-        retweet_max <- max(tweets_w_conform_score$retweet_count)
+        conform_max <- max(tweets$conform_score)
+        favorite_max <- max(tweets$favorite_count)
+        retweet_max <- max(tweets$retweet_count)
+        time_diff_now_max <- max(tweets$time_diff_now)
         
         # Compute the notification score.
-        tweets_w_notif_score <- tweets_w_conform_score %>% 
+        tweets_w_notif_score <- tweets %>% 
                 mutate(
                         notif_score = notif_score(
                                 conform_weight = conform_weight,
@@ -138,8 +146,10 @@ compute_notif_score(tweets_w_conform_score, conform_weight, favorite_weight, ret
                                 favorite_max = favorite_max,
                                 retweet_weight = retweet_weight,
                                 retweet_count = retweet_count,
-                                retwee_max = retweet_max,
-                                time_diff_now_weight = time_diff_now_weight
+                                retweet_max = retweet_max,
+                                time_diff_now_weight = time_diff_now_weight,
+                                time_diff_now = time_diff_now,
+                                time_diff_now_max = time_diff_now_max
                         )
                 )
         
@@ -161,29 +171,37 @@ compute_notif_score(tweets_w_conform_score, conform_weight, favorite_weight, ret
 #' @param retwee_max
 #' @param time_diff_now_weight
 #' @param time_diff_now
+#' @param time_diff_now_max
 #' @return A score between 0 and 1, where 0 is the least worthy of notification and 1 is the most worthy.
 #' @examples
-#' compute_notif_score(conform_score, conform_max, favorite_count, favorite_max, retweet_count, retweet_max, time_diff_now)
-notif_score(conform_weight = 0.4,
-            conform_score,
-            conform_max,
-            favorite_weight = 0.1,
-            favorite_count,
-            favorite_max,
-            retweet_weight = 0.1,
-            retweet_count,
-            retweet_max,
-            time_diff_now_weight = 0.4,
-            time_diff_now) {
+#' notif_score(conform_score, conform_max, favorite_count, favorite_max, retweet_count, retweet_max, time_diff_now)
+notif_score <- function(conform_weight = 0.4,
+                        conform_score,
+                        conform_max,
+                        favorite_weight = 0.1,
+                        favorite_count,
+                        favorite_max,
+                        retweet_weight = 0.1,
+                        retweet_count,
+                        retweet_max,
+                        time_diff_now_weight = 0.4,
+                        time_diff_now,
+                        time_diff_now_max) {
         
-        conform_weight*(conform_score/conform_max) + 
+        result <- conform_weight*(conform_score/conform_max) +
                 favorite_weight*(favorite_count/favorite_max) +
-                retweet_weight*(retweet_count/retweet_max) -
-                time_diff_now_weight*time_diff_now
+                retweet_weight*(retweet_count/retweet_max) +
+                time_diff_now_weight*((time_diff_now_max - time_diff_now)/time_diff_now_max)
+        
+        return(result)
+        
 }
 
-time_diff_prev_notif_func()
+#time_diff_prev_notif_func()
 
 # Call the main function.
-cluster_and_notify()
+cluster_and_notify(conform_weight = conform_weight,
+                   favorite_weight = favorite_weight,
+                   retweet_weight = retweet_weight,
+                   time_diff_now_weight = time_diff_now_weight)
 
