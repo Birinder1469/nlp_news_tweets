@@ -26,11 +26,10 @@ I'm working on [News360](https://news360.com/)'s NLP [test task](https://docs.go
 - Write script to query the tweets from Twitter.
 - Write script to identify tweets that are worthy of notification.
 - Write bash script for the whole pipeline.
-
+- Write script to notify users (by retweeting the selected tweet from the API's authenticated account).
 
 ### To do
 
-- Write script to notify users (by retweeting the selected tweet from the API's authenticated account).
 - Set up cron job.
 - Validate / tweak parameters.
 - Write a blog post explaining my methodology.
