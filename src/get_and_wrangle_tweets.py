@@ -87,8 +87,8 @@ def get_and_wrangle(consumer_key, consumer_secret, access_token, access_token_se
 
 	# Combine the new data with the old data, and remove duplicate tweets.
 	all_tweets = (tidy_new_tweets.append(other = old_tweets)
-                                 .drop_duplicates(subset = 'tweet_url')
-                                 .reset_index(drop = True))
+		.drop_duplicates(subset = 'tweet_url')
+		.reset_index(drop = True))
 
 	# Remove any tweets that are older than 24 hours.
 	recent_tweets = remove_old_tweets(all_tweets, cutoff = cutoff_time)
@@ -111,12 +111,10 @@ def authenticate_api(consumer_key, consumer_secret, access_token, access_token_s
 	"""
 
 	# Read in the consumer key and secret.
-	auth = tweepy.OAuthHandler(consumer_key=consumer_key,
-                               consumer_secret=consumer_secret)
+	auth = tweepy.OAuthHandler(consumer_key=consumer_key, consumer_secret=consumer_secret)
 
 	# Set the access token.
-	auth.set_access_token(access_token,
-                          access_token_secret)
+	auth.set_access_token(access_token, access_token_secret)
 
 	# Define the authenticated API.
 	api = tweepy.API(auth)
@@ -246,7 +244,7 @@ def remove_old_tweets(all_tweets, cutoff):
 	# Remove all tweets that are older than the cutoff. (Default 24 hours.)
 	all_tweets = all_tweets[all_tweets['created_at_stamp'] > cutoff]
 
-    # Reorder the tweets by their creation time.
+	# Reorder the tweets by their creation time.
 	all_tweets = all_tweets.sort_values(by = 'created_at_stamp', ascending = False)
 
 	# Reset the index.
