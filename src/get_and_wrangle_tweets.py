@@ -65,7 +65,7 @@ def get_and_wrangle(consumer_key, consumer_secret, access_token, access_token_se
 		None
 	"""
 
-    # Authenticate the API.
+	# Authenticate the API.
     print("Authenticating...")
     api = authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret)
 
@@ -110,7 +110,7 @@ def authenticate_api(consumer_key, consumer_secret, access_token, access_token_s
 		api: The authenticated tweepy API.
 	"""
 
-    # Read in the consumer key and secret.
+	# Read in the consumer key and secret.
     auth = tweepy.OAuthHandler(consumer_key=consumer_key,
                                consumer_secret=consumer_secret)
 
@@ -134,7 +134,7 @@ def query_tweets(api, users):
 		tweets_data (list): A list of tweets, with attributes stored in JSON.
 	"""
 
-    # Instantiate a list to hold the tweets as JSON files.
+	# Instantiate a list to hold the tweets as JSON files.
     tweets_data = []
 
     # Get all the tweets for each user in the list.
@@ -142,7 +142,7 @@ def query_tweets(api, users):
 
     # Get all the tweets on the same hierarchical level, in a single list.
     for user in range(len(user_tweets)):
-        tweets_data += user_tweets[user]
+		tweets_data += user_tweets[user]
 
     return(tweets_data)
 
@@ -157,7 +157,7 @@ def get_user_tweets(user, api):
 		recent_tweets_json (list): A list of the user's most recent tweets.
 	"""
 
-    # Find the desired user.
+	# Find the desired user.
     this_user = api.get_user(user)
 
     # Get their timeline.
@@ -171,14 +171,14 @@ def get_user_tweets(user, api):
 def get_tweet_json(tweet):
 	"""For a given user, convert a single tweet to JSON."""
 
-    json_str = json.dumps(tweet._json)
+	json_str = json.dumps(tweet._json)
     tweet = json.loads(json_str)
     return(tweet)
 
 def wrangle_new_tweets(new_tweets):
 	"""Convert the new tweets from JSON to a tidy pandas dataframe."""
 
-    # Instantiate a dataframe to hold the tweets.
+	# Instantiate a dataframe to hold the tweets.
     tweets = pd.DataFrame()
 
     # Get when the tweet was created.
@@ -213,21 +213,21 @@ def wrangle_new_tweets(new_tweets):
 def get_url(tweet):
 	"""Get the URL of a tweet even if it's a retweet."""
 
-    return("https://twitter.com/" + tweet['user']['screen_name'] + "/status/" + tweet['id_str'])
+	return("https://twitter.com/" + tweet['user']['screen_name'] + "/status/" + tweet['id_str'])
 
 def check_is_retweet(tweet):
 	"""Check if a tweet is a retweet."""
 
-    try:
-        exists = tweet['retweeted_status']
+	try:
+		exists = tweet['retweeted_status']
 
-        # Think of this as "True" – I've set it to 1 since the resulting dataframe will be parsed in R,
-        # which has different keys for booleans.
-        return(1)
+		# Think of this as "True" – I've set it to 1 since the resulting dataframe will be parsed in R,
+		# which has different keys for booleans.
+		return(1)
     except:
 
-        # Return "False."
-        return(0)
+		# Return "False."
+		return(0)
 
 def remove_old_tweets(all_tweets, cutoff):
 	"""Remove tweets that are older than a specified cutoff.
@@ -240,7 +240,7 @@ def remove_old_tweets(all_tweets, cutoff):
 		all_tweets (dataframe): The same dataframe with old tweets removed.
 	"""
 
-    # Convert the created_at variable to a timestamp.
+	# Convert the created_at variable to a timestamp.
     all_tweets['created_at_stamp'] = all_tweets.apply(tweet_time_to_timestamp, 1)
 
     # Remove all tweets that are older than the cutoff. (Default 24 hours.)
@@ -256,8 +256,8 @@ def remove_old_tweets(all_tweets, cutoff):
 
 def tweet_time_to_timestamp(tweet):
 	"""Convert the time of a tweet to a UTC timestamp."""
-	
-    newtime = datetime.strptime(
+
+	newtime = datetime.strptime(
         tweet['created_at'], '%a %b %d %H:%M:%S +0000 %Y'
     )
     return(newtime)
