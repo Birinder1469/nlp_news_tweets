@@ -7,6 +7,7 @@
 # older tweets, deletes tweets that are older than 24 hours, and writes the
 # resulting data to a CSV.
 
+
 # import libraries/packages
 from datetime import datetime, timedelta
 from itertools import repeat
@@ -15,11 +16,13 @@ import pandas as pd
 import time
 import tweepy
 
+
 # Read in the consumer key, consumer secret, access token, and access token secret.
 consumer_key = open("../../auth/twitter/consumer_key.txt").read()[:-1]
 consumer_secret = open("../../auth/twitter/consumer_secret.txt").read()[:-1]
 access_token = open("../../auth/twitter/access_token.txt").read()[:-1]
 access_token_secret = open("../../auth/twitter/access_token_secret.txt").read()[:-1]
+
 
 # Define the users of interest.
 users = ['nytimes',
@@ -97,6 +100,7 @@ def get_and_wrangle(consumer_key, consumer_secret, access_token, access_token_se
 	recent_tweets.to_csv('../data/candidate_tweets.csv', index = False)
 	print("Done.")
 
+
 def authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret):
 	"""Authenticate the script's access to the API.
 
@@ -121,6 +125,7 @@ def authenticate_api(consumer_key, consumer_secret, access_token, access_token_s
 
 	return(api)
 
+
 def query_tweets(api, users):
 	"""Use the authenticated API to query the most recent tweets from the selected users.
 
@@ -144,6 +149,7 @@ def query_tweets(api, users):
 
 	return(tweets_data)
 
+
 def get_user_tweets(user, api):
 	"""Get all the tweets for a given user.
 
@@ -166,12 +172,14 @@ def get_user_tweets(user, api):
 
 	return(recent_tweets_json)
 
+
 def get_tweet_json(tweet):
 	"""For a given user, convert a single tweet to JSON."""
 
 	json_str = json.dumps(tweet._json)
 	tweet = json.loads(json_str)
 	return(tweet)
+
 
 def wrangle_new_tweets(new_tweets):
 	"""Convert the new tweets from JSON to a tidy pandas dataframe."""
@@ -208,10 +216,12 @@ def wrangle_new_tweets(new_tweets):
 
 	return(tweets)
 
+
 def get_url(tweet):
 	"""Get the URL of a tweet even if it's a retweet."""
 
 	return("https://twitter.com/" + tweet['user']['screen_name'] + "/status/" + tweet['id_str'])
+
 
 def check_is_retweet(tweet):
 	"""Check if a tweet is a retweet."""
@@ -226,6 +236,7 @@ def check_is_retweet(tweet):
 
 		# Return "False."
 		return(0)
+
 
 def remove_old_tweets(all_tweets, cutoff):
 	"""Remove tweets that are older than a specified cutoff.
@@ -252,6 +263,7 @@ def remove_old_tweets(all_tweets, cutoff):
 
 	return(all_tweets)
 
+
 def tweet_time_to_timestamp(tweet):
 	"""Convert the time of a tweet to a UTC timestamp."""
 
@@ -259,6 +271,7 @@ def tweet_time_to_timestamp(tweet):
     	tweet['created_at'], '%a %b %d %H:%M:%S +0000 %Y'
 	)
 	return(newtime)
+
 
 # Call the main function.
 get_and_wrangle(consumer_key = consumer_key,

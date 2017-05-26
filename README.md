@@ -18,3 +18,20 @@ I'm working on [News360](https://news360.com/)'s NLP [test task](https://docs.go
 > 6. create file with results: (tweet URL, tweet text, tweet date and any additional information you found useful) for every such cluster
 >
 > You can select any features you want to group and rank the tweets. Try to achieve the best quality you can. On one hand, we shouldn’t disturb users with useless news, on the other hand, if something really important takes place, we should inform users as fast as we can. So both parameters are important for quality: 1) selection accuracy; 2) latency, i.e. time difference between first tweet about this event and creating notification.
+
+## Progress
+
+### Complete
+
+- Write script to query the tweets from Twitter.
+- Write script to identify tweets that are worthy of notification.
+
+### To do
+
+- Write script to notify users (by retweeting the selected tweet from the API's authenticated account).
+- Write Makefile for the whole pipeline.
+- Set up cron job through AWS.
+- Validate / tweak parameters.
+- Write a blog post explaining my methodology.
+- Add testing and package management.
+- Add license.
