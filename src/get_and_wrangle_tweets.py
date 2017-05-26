@@ -9,6 +9,7 @@
 
 # import libraries/packages
 from datetime import datetime, timedelta
+from itertools import repeat
 import json
 import pandas as pd
 import time
@@ -101,27 +102,30 @@ def authenticate_api(consumer_key, consumer_secret, access_token, access_token_s
 # Use the authenticated API to query the most recent tweets from the selected users.
 def query_tweets(api, users):
 
-    # Initialize a list to hold the tweets as JSON files.
+    # Instantiate a list to hold the tweets as JSON files.
     tweets_data = []
 
-    # Loop over the users. (Hard to vectorize since I want to keep all tweets
-    # on the same hierarchical level. I.e. I don't want a list of lists.)
-    for user in range(len(users)):
+    # Get all the tweets for each user in the list.
+    user_tweets = list(map(get_user_tweets, users, repeat(api)))
 
-        # Find the desired user.
-        this_user = api.get_user(users[user])
-
-        # Get their timeline.
-        this_user_recent_tweets = api.user_timeline(user_id = this_user.id)
-
-        # For each of their recent tweets, convert to JSON and store in a list.
-        recent_tweets_json = list(map(get_tweet_json, this_user_recent_tweets))
-        #recent_tweets_json = list(map(get_tweet_json, list(range(len(this_user_recent_tweets)))))
-
-        # Append that list to the overall list of tweets.
-        tweets_data += recent_tweets_json
+    # Get all the tweets on the same hierarchical level, in a single list.
+    for user in range(len(user_tweets)):
+        tweets_data += user_tweets[user]
 
     return(tweets_data)
+
+def get_user_tweets(user, api):
+
+    # Find the desired user.
+    this_user = api.get_user(user)
+
+    # Get their timeline.
+    this_user_recent_tweets = api.user_timeline(user_id = this_user.id)
+
+    # For each of their recent tweets, convert to JSON and store in a list.
+    recent_tweets_json = list(map(get_tweet_json, this_user_recent_tweets))
+
+    return(recent_tweets_json)
 
 # For a given user, convert a single tweet to JSON.
 def get_tweet_json(tweet):
@@ -132,7 +136,7 @@ def get_tweet_json(tweet):
 # Convert the new tweets from JSON to a tidy pandas dataframe.
 def wrangle_new_tweets(new_tweets):
 
-    # Initialize a dataframe to hold the tweets.
+    # Instantiate a dataframe to hold the tweets.
     tweets = pd.DataFrame()
 
     # Get when the tweet was created.
@@ -172,9 +176,14 @@ def get_url(tweet):
 def check_is_retweet(tweet):
     try:
         exists = tweet['retweeted_status']
-        return True
+
+        # Think of this as "True" – I've set it to 1 since the resulting dataframe will be parsed in R,
+        # which has different keys for booleans.
+        return(1)
     except:
-        return False
+
+        # Return "False."
+        return(0)
 
 def remove_old_tweets(all_tweets, cutoff):
 
