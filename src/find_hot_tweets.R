@@ -26,6 +26,7 @@ assert_that(sum(conform_weight, favorite_weight, retweet_weight) == 1)
 # Define the parameters of the notification threshold function.
 asymptote <- 0.99  ## At all times, the conformity score of the selected tweet must be in the 99th percentile.
 time_diff_prev_threshold <- 1  ## 1 hour must have passed since the previous notification.
+time_diff_now_threshold <-  ## Any new notifications must be for tweets that have been created in the past hour.
 
 # Check that the asymptote is strictly less than 1 (otherwise no tweet will ever be good enough for a notification.)
 assert_that(asymptote < 1)
@@ -39,7 +40,8 @@ assert_that(asymptote < 1)
 #' @param favorite_weight The weight to assign to the favorite count in the notification score function.
 #' @param retweet_weight The weight to assign to the retweet count in the notification score function.
 #' @param asymptote The minimum acceptable percentile rank of a tweet's conformity score.
-#' @param time_diff_prev_threshold The time that must have passed since the previous notification was sent.
+#' @param time_diff_prev_threshold The minimum number of hours that must have passed since the previous notification was sent.
+#' @param time_diff_now_threshold The maximum number of hours that can have passed since the tweet's creation.
 #' @return
 #' @examples
 #' cluster_and_notify()
@@ -47,7 +49,8 @@ find_hot_tweets <- function(conform_weight = 0.6,
                             favorite_weight = 0.2,
                             retweet_weight = 0.2,
                             asymptote = 0.99,
-                            time_diff_prev_threshold = 1) {
+                            time_diff_prev_threshold = 1,
+                            time_diff_now_threshold = 1) {
 
         # Get the time right now.
         time_now <- now("UTC")
@@ -104,7 +107,8 @@ find_hot_tweets <- function(conform_weight = 0.6,
                 tweets_w_threshold <- compute_threshold(tweets = tweets_w_conform_score,
                                                         time_diff_prev_notif = time_diff_prev_notif,
                                                         asymptote = asymptote,
-                                                        time_diff_prev_threshold = time_diff_prev_threshold)
+                                                        time_diff_prev_threshold = time_diff_prev_threshold,
+                                                        time_diff_now_threshold = time_diff_now_threshold)
 
                 # If none of the tweets meet the notification threshold, stop.
                 if (sum(tweets_w_threshold$meet_threshold) == 0) {
@@ -216,11 +220,16 @@ compute_conform_score <- function(cleaned_tweet_words, tweets) {
 #' @param tweets The full tweets dataframe, including a column that shows a measure of conformity.
 #' @param time_diff_prev_notif The time that has passed since the previous notification was sent.
 #' @param asymptote The asymptote for the conformity score percentile threshold function.
+#' @param time_diff_prev_threshold The minimum number of hours that must have passed since the last notification was sent.
 #' @param time_diff_now_threshold The maximum number of hours that can have passed since the tweet's creation.
 #' @return The full tweets dataframe, including a new column that shows which (if any) tweets meet the threshold for sending a notification.
 #' @examples
 #' compute_threshold(tweets, conform_weight, favorite_weight, retweet_weight)
-compute_threshold <- function(tweets, time_diff_prev_notif, asymptote = 0.99, time_diff_prev_threshold = 1) {
+compute_threshold <- function(tweets,
+                              time_diff_prev_notif,
+                              asymptote = 0.99,
+                              time_diff_prev_threshold = 1,
+                              time_diff_now_threshold = 1) {
 
         # The threshold can be chosen arbitrarily, but I think the method below is a smart way to choose it,
         # so that notifications are only sent when a big story occurs, but they're not sent in quick succession.
@@ -249,9 +258,6 @@ compute_threshold <- function(tweets, time_diff_prev_notif, asymptote = 0.99, ti
         # the tweet to have a conformity score that is above the 100th percentile until the time threshold has been reached.
         # See the README for a visualization of the threshold function, and it will make more sense.)
         conform_threshold <- asymptote + 0.01*(time_diff_prev_threshold/time_diff_prev_notif)
-        
-        # Set the maximum number of hours that can have passed since a tweet's creation and now.
-        time_diff_now_threshold <- 10
         
         # Determine which tweets meet the threshold.
         tweets_w_threshold <- tweets_w_perc
@@ -347,4 +353,5 @@ find_hot_tweets(conform_weight = conform_weight,
                 favorite_weight = favorite_weight,
                 retweet_weight = retweet_weight,
                 asymptote = asymptote,
-                time_diff_prev_threshold = time_diff_prev_threshold)
+                time_diff_prev_threshold = time_diff_prev_threshold,
+                time_diff_now_threshold = time_diff_now_threshold)
