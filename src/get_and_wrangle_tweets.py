@@ -85,8 +85,8 @@ def get_and_wrangle(consumer_key, consumer_secret, access_token, access_token_se
     tidy_new_tweets = wrangle_new_tweets(new_tweets = new_tweets)
 
     # Read in the previously stored tweets.
-    print("Combining with old tweets...")
-    old_tweets = get_old_tweets()
+    print("Combining with past tweets...")
+    old_tweets = get_past_tweets()
 
     # Combine the new data with the old data, and remove duplicate tweets.
     all_tweets = (tidy_new_tweets.append(other = old_tweets)
@@ -102,83 +102,83 @@ def get_and_wrangle(consumer_key, consumer_secret, access_token, access_token_se
 
 
 def authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret):
-	"""Authenticate the script's access to the API.
+    """Authenticate the script's access to the API.
 
-	Args:
-		consumer_key (str): The API's consumer key.
-    	consumer_secret (str): The API's consumer secret.
-		access_token (str): The API's access token.
-		access_token_secret (str): The API's access_token_secret
+    Args:
+        consumer_key (str): The API's consumer key.
+        consumer_secret (str): The API's consumer secret.
+        access_token (str): The API's access token.
+        access_token_secret (str): The API's access_token_secret
 
-	Returns:
-		api: The authenticated tweepy API.
-	"""
+    Returns:
+        api: The authenticated tweepy API.
+    """
 
-	# Read in the consumer key and secret.
-	auth = tweepy.OAuthHandler(consumer_key=consumer_key, consumer_secret=consumer_secret)
+    # Read in the consumer key and secret.
+    auth = tweepy.OAuthHandler(consumer_key=consumer_key, consumer_secret=consumer_secret)
 
-	# Set the access token.
-	auth.set_access_token(access_token, access_token_secret)
+    # Set the access token.
+    auth.set_access_token(access_token, access_token_secret)
 
-	# Define the authenticated API.
-	api = tweepy.API(auth)
+    # Define the authenticated API.
+    api = tweepy.API(auth)
 
-	return(api)
+    return(api)
 
 
 def query_tweets(api, users):
-	"""Use the authenticated API to query the most recent tweets from the selected users.
+    """Use the authenticated API to query the most recent tweets from the selected users.
 
-	Args:
-		api (var): The authenticated tweepy API.
-		users (list): The list of users.
+    Args:
+        api (var): The authenticated tweepy API.
+        users (list): The list of users.
 
-	Returns:
-		tweets_data (list): A list of tweets, with attributes stored in JSON.
-	"""
+    Returns:
+        tweets_data (list): A list of tweets, with attributes stored in JSON.
+    """
 
-	# Instantiate a list to hold the tweets as JSON files.
-	tweets_data = []
+    # Instantiate a list to hold the tweets as JSON files.
+    tweets_data = []
 
-	# Get all the tweets for each user in the list.
-	user_tweets = list(map(get_user_tweets, users, repeat(api)))
+    # Get all the tweets for each user in the list.
+    user_tweets = list(map(get_user_tweets, users, repeat(api)))
 
-	# Get all the tweets on the same hierarchical level, in a single list.
-	for user in range(len(user_tweets)):
-		tweets_data += user_tweets[user]
+    # Get all the tweets on the same hierarchical level, in a single list.
+    for user in range(len(user_tweets)):
+        tweets_data += user_tweets[user]
 
-	return(tweets_data)
+    return(tweets_data)
 
 
 def get_user_tweets(user, api):
-	"""Get all the tweets for a given user.
+    """Get all the tweets for a given user.
 
-	Args:
-		user (str): A user.
-		api (var): The authenticated tweepy API.
+    Args:
+        user (str): A user.
+        api (var): The authenticated tweepy API.
 
-	Returns:
-		recent_tweets_json (list): A list of the user's most recent tweets.
-	"""
+    Returns:
+        recent_tweets_json (list): A list of the user's most recent tweets.
+    """
 
-	# Find the desired user.
-	this_user = api.get_user(user)
+    # Find the desired user.
+    this_user = api.get_user(user)
 
-	# Get their timeline.
-	this_user_recent_tweets = api.user_timeline(user_id = this_user.id)
+    # Get their timeline.
+    this_user_recent_tweets = api.user_timeline(user_id = this_user.id)
 
-	# For each of their recent tweets, convert to JSON and store in a list.
-	recent_tweets_json = list(map(get_tweet_json, this_user_recent_tweets))
+    # For each of their recent tweets, convert to JSON and store in a list.
+    recent_tweets_json = list(map(get_tweet_json, this_user_recent_tweets))
 
-	return(recent_tweets_json)
+    return(recent_tweets_json)
 
 
 def get_tweet_json(tweet):
-	"""For a given user, convert a single tweet to JSON."""
+    """For a given user, convert a single tweet to JSON."""
 
-	json_str = json.dumps(tweet._json)
-	tweet = json.loads(json_str)
-	return(tweet)
+    json_str = json.dumps(tweet._json)
+    tweet = json.loads(json_str)
+    return(tweet)
 
 
 def wrangle_new_tweets(new_tweets):
@@ -221,27 +221,27 @@ def wrangle_new_tweets(new_tweets):
 
 
 def get_url(tweet):
-	"""Get the URL of a tweet even if it's a retweet."""
+    """Get the URL of a tweet even if it's a retweet."""
 
-	return("https://twitter.com/" + tweet['user']['screen_name'] + "/status/" + tweet['id_str'])
+    return("https://twitter.com/" + tweet['user']['screen_name'] + "/status/" + tweet['id_str'])
 
 
 def check_is_retweet(tweet):
-	"""Check if a tweet is a retweet."""
+    """Check if a tweet is a retweet."""
 
-	try:
-		exists = tweet['retweeted_status']
+    try:
+        exists = tweet['retweeted_status']
 
-		# Think of this as "True" – I've set it to 1 since the resulting dataframe will be parsed in R,
-		# which has different keys for booleans.
-		return(1)
-	except:
+        # Think of this as "True" – I've set it to 1 since the resulting dataframe will be parsed in R,
+        # which has different keys for booleans.
+        return(1)
+    except:
 
-		# Return "False."
-		return(0)
+        # Return "False."
+        return(0)
 
 
-def get_old_tweets():
+def get_past_tweets():
     """Read in the old tweets."""
 
     try:
@@ -257,38 +257,38 @@ def get_old_tweets():
 
 
 def remove_old_tweets(all_tweets, cutoff):
-	"""Remove tweets that are older than a specified cutoff.
+    """Remove tweets that are older than a specified cutoff.
 
-	Args:
-		all_tweets (dataframe): A dataframe containing information about all the tweets.
-		cutoff (str): A timestamp, in the form '%Y-%m-%d %H:%M:%S'.
+    Args:
+        all_tweets (dataframe): A dataframe containing information about all the tweets.
+        cutoff (str): A timestamp, in the form '%Y-%m-%d %H:%M:%S'.
 
-	Return:
-		all_tweets (dataframe): The same dataframe with old tweets removed.
-	"""
+    Return:
+        all_tweets (dataframe): The same dataframe with old tweets removed.
+    """
 
-	# Convert the created_at variable to a timestamp.
-	all_tweets['created_at_stamp'] = all_tweets.apply(tweet_time_to_timestamp, 1)
+    # Convert the created_at variable to a timestamp.
+    all_tweets['created_at_stamp'] = all_tweets.apply(tweet_time_to_timestamp, 1)
 
-	# Remove all tweets that are older than the cutoff. (Default 24 hours.)
-	all_tweets = all_tweets[all_tweets['created_at_stamp'] > cutoff]
+    # Remove all tweets that are older than the cutoff. (Default 24 hours.)
+    all_tweets = all_tweets[all_tweets['created_at_stamp'] > cutoff]
 
-	# Reorder the tweets by their creation time.
-	all_tweets = all_tweets.sort_values(by = 'created_at_stamp', ascending = False)
+    # Reorder the tweets by their creation time.
+    all_tweets = all_tweets.sort_values(by = 'created_at_stamp', ascending = False)
 
-	# Reset the index.
-	all_tweets = all_tweets.reset_index(drop = True)
+    # Reset the index.
+    all_tweets = all_tweets.reset_index(drop = True)
 
-	return(all_tweets)
+    return(all_tweets)
 
 
 def tweet_time_to_timestamp(tweet):
-	"""Convert the time of a tweet to a UTC timestamp."""
+    """Convert the time of a tweet to a UTC timestamp."""
 
-	newtime = datetime.strptime(
-    	tweet['created_at'], '%a %b %d %H:%M:%S +0000 %Y'
-	)
-	return(newtime)
+    newtime = datetime.strptime(
+        tweet['created_at'], '%a %b %d %H:%M:%S +0000 %Y'
+    )
+    return(newtime)
 
 
 # Call the main function.
