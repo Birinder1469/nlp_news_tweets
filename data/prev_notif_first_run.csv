@@ -1,2 +1,2 @@
-created_at,created_at_stamp,favorite_count,is_retweet,name,retweet_count,screen_name,text,tweet_url,utc_offset,tweet_id,time_diff_now,conform_score,threshold,notif_score,to_send,notif_time
-None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,0,'1979-01-01 00:00:00'
+created_at,created_at_stamp,favorite_count,is_retweet,name,retweet_count,screen_name,text,tweet_url,utc_offset,tweet_id,time_diff_now,conform_score,percent_rank,meet_threshold,notif_score,to_send,notif_time
+Sat Jan 01 00:00:00 +0000 1979,1979-01-01 00:00:00,10,0,"dummy",10,"Dummy","This is the text of a tweet.",https://twitter.com/dummy/status/000000000000000000,0,000000000000000000,1,100,0.99,1,0.5,0,1979-01-01 00:00:00

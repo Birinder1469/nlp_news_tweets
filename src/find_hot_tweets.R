@@ -52,27 +52,34 @@ find_hot_tweets <- function(conform_weight = 0.6,
         # Get the time right now.
         time_now <- now("UTC")
 
-
-        try_catch({
+        previous_notif_tweets <- tryCatch({
 
                 # Read in the tweets that were previously sent as notifications.
-                previous_notif_tweets <- read.csv("../data/previous_notif_tweets.csv")
+                #previous_notif_tweets <- #
+                read.csv("../data/previous_notif_tweets.csv")
+                
+                #previous_notif_tweets
 
-        }, error = function(err) {
+        }, warning = function(w) {
 
                 # Read in a dummy file.
-                prev_notif_first_run <- read.csv("../data/prev_notif_first_run.csv")
+                #previous_notif_tweets <- 
+                read.csv("../data/prev_notif_first_run.csv")
 
+                #previous_notif_tweets
+                
         })
-
+        
         # Find how much time has passed since the previous notification was sent.
         time_diff_prev_notif <- previous_notif_tweets %>%
-                mutate(time_diff_prev_notif = as.numeric(time_now - parse_date_time(notif_time, "Ymd HMS"))) %>%
-                min(time_diff_prev_notif)
-
+                mutate(time_diff_prev_notif = as.numeric(difftime(time_now, parse_date_time(notif_time, "Ymd HMS"), units = "hours"))) %>%
+                select(time_diff_prev_notif) %>% 
+                min()
+        
         # If not enough time has passed, do nothing.
         if (time_diff_prev_notif < time_diff_prev_threshold) {
 
+                print("Not enough time has passed since the last notification.")
                 return(NULL)
 
         # Otherwise...
@@ -83,10 +90,10 @@ find_hot_tweets <- function(conform_weight = 0.6,
 
                 # Get one word per row, and clean out uninformative words.
                 cleaned_tweet_words <- clean_tweets(tweets)
-
+                
                 # Find how much time has passed since each tweet's creation time.
                 tweets_w_time_diff_now <- tweets %>%
-                        mutate(time_diff_now = as.numeric(time_now - parse_date_time(created_at_stamp, "Ymd HMS")))
+                        mutate(time_diff_now = as.numeric(difftime(time_now, parse_date_time(created_at_stamp, "Ymd HMS"), units = "hours")))
 
                 # Assign a score to each tweet according to how much it conforms with words used in tweets
                 # by other authors. (This finds tweets that are representative of events that everyone
@@ -94,40 +101,45 @@ find_hot_tweets <- function(conform_weight = 0.6,
                 tweets_w_conform_score <- compute_conform_score(cleaned_tweet_words, tweets = tweets_w_time_diff_now)
 
                 # Determine which (if any) of the candidate tweets meet the threshold for sending a notification.
-                tweets_w_threshold <- compute_threshold(tweets = tweets_w_notif_score,
+                tweets_w_threshold <- compute_threshold(tweets = tweets_w_conform_score,
                                                         time_diff_prev_notif = time_diff_prev_notif,
                                                         asymptote = asymptote,
                                                         time_diff_prev_threshold = time_diff_prev_threshold)
 
                 # If none of the tweets meet the notification threshold, stop.
-                if (sum(tweets_w_threshold) == 0) {
-
+                if (sum(tweets_w_threshold$meet_threshold) == 0) {
+                        
+                        print("No tweets meet the threshold.")
                         return(NULL)
 
                 # Otherwise...
                 } else {
 
                         # Keep only tweets that meet the threshold.
-                        candidate_tweets <- tweets_w_threshold %>% filter(meet_threshold == TRUE)
+                        candidate_tweets <- tweets_w_threshold %>% filter(meet_threshold == 1)
 
                         # Assign a score to each tweet according to its worthiness for sending a notification.
                         candidate_tweets_w_notif_score <- compute_notif_score(candidate_tweets = candidate_tweets,
                                                                               conform_weight = conform_weight,
                                                                               favorite_weight = favorite_weight,
                                                                               retweet_weight = retweet_weight)
-
-                        # Choose the best tweet.
-                        best_tweet <- candidate_tweets_w_notif_score[candidate_tweets_w_notif_score$notif_score == max(candidate_tweets_w_notif_score$notif_score)]
-
+                        
+                        # Get the best tweet.
+                        best_tweet <- candidate_tweets_w_notif_score %>% 
+                                filter(notif_score == max(notif_score))
+                        
                         # Specify that the notification has not yet been sent.
-                        best_tweet <- best_tweet %>% mutate(to_send = 1)
-
-                        # Prepend the best tweet to the dataframe containing the tweets that were previously sent as notifications,
-                        # and save it back to CSV, to be read by the notification script.
+                        best_tweet <- best_tweet %>% mutate(to_send = 1,
+                                                            notif_time = strftime(time_now, tz = "GMT", format = "%Y-%m-%d %H:%M:%S"))
+                        
+                        # Prepend the best tweet to the dataframe containing the tweets that were previously sent as notifications.
                         previous_notif_tweets <- best_tweet %>%
-                                rbind(previous_notif_tweets) %>%
-                                write.csv("../data/previous_notif_tweets.csv")
-
+                                rbind(previous_notif_tweets)
+                        
+                        # Save it back to CSV, to be read by the notification script.
+                        write.csv(previous_notif_tweets, "../data/previous_notif_tweets.csv", row.names = FALSE)
+                        
+                        print("New tweet saved to notifications.")
                 }
 
         }
@@ -236,20 +248,17 @@ compute_threshold <- function(tweets, time_diff_prev_notif, asymptote = 0.99, ti
         # Set the threshold. (The 0.01 sets the time threshold to 100%. That is, the threshold requires
         # the tweet to have a conformity score that is above the 100th percentile until the time threshold has been reached.
         # See the README for a visualization of the threshold function, and it will make more sense.)
-        conform_threshold <- asymptote + 0.01(time_diff_prev_threshold/time_diff_prev_notif)
-
+        conform_threshold <- asymptote + 0.01*(time_diff_prev_threshold/time_diff_prev_notif)
+        
         # Set the maximum number of hours that can have passed since a tweet's creation and now.
-        time_diff_now_threshold <- 1
-
-        tweets_w_threshold <- tweets_w_perc %>%
-
-                mutate(meet_threshold = case_when(
-
-                        percent_rank > conform_threshold & time_diff_now < time_diff_now_threshold ~ TRUE,
-                        percent_rank <= conform_threshold | time_diff_now >= time_diff_now_threshold ~ FALSE
-
-                ))
-
+        time_diff_now_threshold <- 10
+        
+        # Determine which tweets meet the threshold.
+        tweets_w_threshold <- tweets_w_perc
+        tweets_w_threshold$meet_threshold <- 0
+        tweets_w_threshold$meet_threshold[tweets_w_threshold$percent_rank > conform_threshold &
+                                                  tweets_w_threshold$time_diff_now < time_diff_now_threshold] <- 1
+        
         return(tweets_w_threshold)
 
 }
