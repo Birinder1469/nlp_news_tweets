@@ -34,7 +34,6 @@ def notify(consumer_key, consumer_secret, access_token, access_token_secret):
         None
     """
 
-    # Read in the CSV containing the tweets that have been identified.
     previous_notif_tweets = pd.read_csv('../data/previous_notif_tweets.csv')
 
     # Make sure there aren't extra tweets to send.

@@ -55,50 +55,50 @@ users = ['nytimes',
 # `get_and_wrangle` is the main function.
 
 def get_and_wrangle(consumer_key, consumer_secret, access_token, access_token_secret, users):
-	"""Get the new tweets and wrangle them so that they can be analysed.
+    """Get the new tweets and wrangle them so that they can be analysed.
 
-	Args:
-    	consumer_key (str): The API's consumer key.
-    	consumer_secret (str): The API's consumer secret.
-		access_token (str): The API's access token.
-		access_token_secret (str): The API's access_token_secret
-		users (list): A list of users.
+    Args:
+        consumer_key (str): The API's consumer key.
+        consumer_secret (str): The API's consumer secret.
+        access_token (str): The API's access token.
+        access_token_secret (str): The API's access_token_secret
+        users (list): A list of users.
 
-	Returns:
-		None
-	"""
+    Returns:
+        None
+    """
 
-	# Authenticate the API.
-	print("Authenticating...")
-	api = authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret)
+    # Authenticate the API.
+    print("Authenticating...")
+    api = authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret)
 
-	# Save the current time, and the cutoff time for keeping old tweets.
-	current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-	cutoff_time = (datetime.utcnow() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
+    # Save the current time, and the cutoff time for keeping old tweets.
+    current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    cutoff_time = (datetime.utcnow() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
 
-	# Query the Twitter API to get the most recent tweets from the users of interest.
-	print("Getting tweets...")
-	new_tweets = query_tweets(api = api, users = users)
+    # Query the Twitter API to get the most recent tweets from the users of interest.
+    print("Getting tweets...")
+    new_tweets = query_tweets(api = api, users = users)
 
-	# Convert the tweets from JSON to a pandas dataframe.
-	print("Wrangling tweets...")
-	tidy_new_tweets = wrangle_new_tweets(new_tweets = new_tweets)
+    # Convert the tweets from JSON to a pandas dataframe.
+    print("Wrangling tweets...")
+    tidy_new_tweets = wrangle_new_tweets(new_tweets = new_tweets)
 
-	# Read in the previously stored tweets.
-	print("Combining with old tweets...")
-	old_tweets = pd.read_csv('../data/candidate_tweets.csv')
+    # Read in the previously stored tweets.
+    print("Combining with old tweets...")
+    old_tweets = get_old_tweets()
 
-	# Combine the new data with the old data, and remove duplicate tweets.
-	all_tweets = (tidy_new_tweets.append(other = old_tweets)
-		.drop_duplicates(subset = 'tweet_url')
-		.reset_index(drop = True))
+    # Combine the new data with the old data, and remove duplicate tweets.
+    all_tweets = (tidy_new_tweets.append(other = old_tweets)
+        .drop_duplicates(subset = 'tweet_url')
+        .reset_index(drop = True))
 
-	# Remove any tweets that are older than 24 hours.
-	recent_tweets = remove_old_tweets(all_tweets, cutoff = cutoff_time)
+    # Remove any tweets that are older than 24 hours.
+    recent_tweets = remove_old_tweets(all_tweets, cutoff = cutoff_time)
 
-	# Save the updated, pruned dataset to csv.
-	recent_tweets.to_csv('../data/candidate_tweets.csv', index = False)
-	print("Done.")
+    # Save the updated, pruned dataset to csv.
+    recent_tweets.to_csv('../data/candidate_tweets.csv', index = False)
+    print("Done.")
 
 
 def authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret):
@@ -182,39 +182,42 @@ def get_tweet_json(tweet):
 
 
 def wrangle_new_tweets(new_tweets):
-	"""Convert the new tweets from JSON to a tidy pandas dataframe."""
+    """Convert the new tweets from JSON to a tidy pandas dataframe."""
 
-	# Instantiate a dataframe to hold the tweets.
-	tweets = pd.DataFrame()
+    # Instantiate a dataframe to hold the tweets.
+    tweets = pd.DataFrame()
 
-	# Get when the tweet was created.
-	tweets['created_at'] = list(map(lambda tweet: tweet['created_at'], new_tweets))
+    # Get when the tweet was created.
+    tweets['created_at'] = list(map(lambda tweet: tweet['created_at'], new_tweets))
 
-	# Get the UTC offset, so that times can be correctly compared.
-	tweets['utc_offset'] = list(map(lambda tweet: tweet['user']['utc_offset'], new_tweets))
+    # Get the UTC offset, so that times can be correctly compared.
+    tweets['utc_offset'] = list(map(lambda tweet: tweet['user']['utc_offset'], new_tweets))
 
-	# Get the text in the tweet.
-	tweets['text'] = list(map(lambda tweet: tweet['text'], new_tweets))
+    # Get the tweet ID.
+    tweets['tweet_id'] = list(map(lambda tweet: tweet['id_str'], new_tweets))
 
-	# Get the url of the tweet itself.
-	tweets['tweet_url'] = list(map(get_url, new_tweets))
+    # Get the text in the tweet.
+    tweets['text'] = list(map(lambda tweet: tweet['text'], new_tweets))
 
-	# Get the user's screen name.
-	tweets['screen_name'] = list(map(lambda tweet: tweet['user']['screen_name'], new_tweets))
+    # Get the url of the tweet itself.
+    tweets['tweet_url'] = list(map(get_url, new_tweets))
 
-	# Get the user's username.
-	tweets['name'] = list(map(lambda tweet: tweet['user']['name'], new_tweets))
+    # Get the user's screen name.
+    tweets['screen_name'] = list(map(lambda tweet: tweet['user']['screen_name'], new_tweets))
 
-	# Get the number of times the tweet was retweeted.
-	tweets['retweet_count'] = list(map(lambda tweet: tweet['retweet_count'], new_tweets))
+    # Get the user's username.
+    tweets['name'] = list(map(lambda tweet: tweet['user']['name'], new_tweets))
 
-	# Get the number of times the tweet was favorited.
-	tweets['favorite_count'] = list(map(lambda tweet: tweet['favorite_count'], new_tweets))
+    # Get the number of times the tweet was retweeted.
+    tweets['retweet_count'] = list(map(lambda tweet: tweet['retweet_count'], new_tweets))
 
-	# Get the retweet status.
-	tweets['is_retweet'] = list(map(check_is_retweet, new_tweets))
+    # Get the number of times the tweet was favorited.
+    tweets['favorite_count'] = list(map(lambda tweet: tweet['favorite_count'], new_tweets))
 
-	return(tweets)
+    # Get the retweet status.
+    tweets['is_retweet'] = list(map(check_is_retweet, new_tweets))
+
+    return(tweets)
 
 
 def get_url(tweet):
@@ -236,6 +239,21 @@ def check_is_retweet(tweet):
 
 		# Return "False."
 		return(0)
+
+
+def get_old_tweets():
+    """Read in the old tweets."""
+
+    try:
+
+        # If it's not the first run, the file will be present.
+        old_tweets = pd.read_csv('../data/candidate_tweets.csv')
+        return(old_tweets)
+
+    except:
+        # Otherwise, read in a dummy file.
+        old_tweets = pd.read_csv('../data/candidate_tweets_first_run.csv')
+        return(old_tweets)
 
 
 def remove_old_tweets(all_tweets, cutoff):

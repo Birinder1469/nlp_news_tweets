@@ -20,7 +20,7 @@ favorite_weight <- 0.2   ## 20% for the number of favorites.
 retweet_weight <- 0.2    ## 20% for the number of retweets.
 
 # To make the notification score more interpretable, enforce a rule that all the weights must add up to 1.
-assert_that(sum(conform_weight, favorite_weight, retweet_weight, time_diff_now_weight) == 1)
+assert_that(sum(conform_weight, favorite_weight, retweet_weight) == 1)
 
 
 # Define the parameters of the notification threshold function.
@@ -52,8 +52,18 @@ find_hot_tweets <- function(conform_weight = 0.6,
         # Get the time right now.
         time_now <- now("UTC")
 
-        # Read in the tweets that were previously sent as notifications.
-        previous_notif_tweets <- read.csv("../data/previous_notif_tweets.csv")
+
+        try_catch({
+
+                # Read in the tweets that were previously sent as notifications.
+                previous_notif_tweets <- read.csv("../data/previous_notif_tweets.csv")
+
+        }, error = function(err) {
+
+                # Read in a dummy file.
+                prev_notif_first_run <- read.csv("../data/prev_notif_first_run.csv")
+
+        })
 
         # Find how much time has passed since the previous notification was sent.
         time_diff_prev_notif <- previous_notif_tweets %>%
@@ -104,8 +114,7 @@ find_hot_tweets <- function(conform_weight = 0.6,
                         candidate_tweets_w_notif_score <- compute_notif_score(candidate_tweets = candidate_tweets,
                                                                               conform_weight = conform_weight,
                                                                               favorite_weight = favorite_weight,
-                                                                              retweet_weight = retweet_weight,
-                                                                              time_diff_now_weight = time_diff_now_weight)
+                                                                              retweet_weight = retweet_weight)
 
                         # Choose the best tweet.
                         best_tweet <- candidate_tweets_w_notif_score[candidate_tweets_w_notif_score$notif_score == max(candidate_tweets_w_notif_score$notif_score)]
@@ -198,7 +207,7 @@ compute_conform_score <- function(cleaned_tweet_words, tweets) {
 #' @param time_diff_now_threshold The maximum number of hours that can have passed since the tweet's creation.
 #' @return The full tweets dataframe, including a new column that shows which (if any) tweets meet the threshold for sending a notification.
 #' @examples
-#' compute_threshold(tweets, conform_weight, favorite_weight, retweet_weight, time_diff_now_weight)
+#' compute_threshold(tweets, conform_weight, favorite_weight, retweet_weight)
 compute_threshold <- function(tweets, time_diff_prev_notif, asymptote = 0.99, time_diff_prev_threshold = 1) {
 
         # The threshold can be chosen arbitrarily, but I think the method below is a smart way to choose it,
@@ -252,11 +261,10 @@ compute_threshold <- function(tweets, time_diff_prev_notif, asymptote = 0.99, ti
 #' @param conform_weight The weight to assign to the conformity score.
 #' @param favorite_weight The weight to assign to the number of favorites.
 #' @param retweet_weight The weight to assign to the number of retweets.
-#' @param time_diff_now_weight The weight to assign to the time that has passed since the tweet was created.
 #' @return The full tweets dataframe, including a new column that shows the notification score.
 #' @examples
-#' compute_notif_score(tweets, conform_weight, favorite_weight, retweet_weight, time_diff_now_weight)
-compute_notif_score <- function(candidate_tweets, conform_weight, favorite_weight, retweet_weight, time_diff_now_weight) {
+#' compute_notif_score(tweets, conform_weight, favorite_weight, retweet_weight)
+compute_notif_score <- function(candidate_tweets, conform_weight, favorite_weight, retweet_weight) {
 
         # Compute the maximum values of the conformity score, the favorite count, the retweet count, and the time since creation.
         # (This is done to normalize the variables in the notification score.)
@@ -278,9 +286,6 @@ compute_notif_score <- function(candidate_tweets, conform_weight, favorite_weigh
                                 retweet_weight = retweet_weight,
                                 retweet_count = retweet_count,
                                 retweet_max = retweet_max,
-                                time_diff_now_weight = time_diff_now_weight,
-                                time_diff_now = time_diff_now,
-                                time_diff_now_max = time_diff_now_max,
                                 is_retweet = is_retweet
                         )
                 )
