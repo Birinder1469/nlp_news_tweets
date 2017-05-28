@@ -21,3 +21,8 @@ Rscript src/find_hot_tweets.R
 
 # If a tweet has been selected, notify the user.
 python src/notify.py
+
+# Rerun the script in a minute.
+at now + 1 minute << END
+"$0" "$@"
+END
