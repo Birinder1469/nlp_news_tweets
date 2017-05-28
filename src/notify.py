@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# get_and_wrangle_tweets.py
+# notify.py
 # David Laing, May 2017
 #
 # This script reads in a CSV containing information about tweets that have been
@@ -13,10 +13,10 @@ import tweepy
 
 
 # Read in the consumer key, consumer secret, access token, and access token secret.
-consumer_key = open("../../auth/twitter/consumer_key.txt").read()[:-1]
-consumer_secret = open("../../auth/twitter/consumer_secret.txt").read()[:-1]
-access_token = open("../../auth/twitter/access_token.txt").read()[:-1]
-access_token_secret = open("../../auth/twitter/access_token_secret.txt").read()[:-1]
+consumer_key = open("../auth/twitter/consumer_key.txt").read()
+consumer_secret = open("../auth/twitter/consumer_secret.txt").read()
+access_token = open("../auth/twitter/access_token.txt").read()
+access_token_secret = open("../auth/twitter/access_token_secret.txt").read()
 
 
 # `notify` is the main function.
@@ -25,16 +25,24 @@ def notify(consumer_key, consumer_secret, access_token, access_token_secret):
     """Send a notification, if there is a new tweet to send one for.
 
     Args:
-		consumer_key (str): The API's consumer key.
-    	consumer_secret (str): The API's consumer secret.
-		access_token (str): The API's access token.
-		access_token_secret (str): The API's access_token_secret
+        consumer_key (str): The API's consumer key.
+        consumer_secret (str): The API's consumer secret.
+        access_token (str): The API's access token.
+        access_token_secret (str): The API's access_token_secret
 
     Returns:
         None
     """
 
-    previous_notif_tweets = pd.read_csv('../data/previous_notif_tweets.csv')
+    try:
+
+        previous_notif_tweets = pd.read_csv('data/previous_notif_tweets.csv')
+
+    except:
+
+        print("No new tweets. Exiting.")
+
+        return(None)
 
     # Make sure there aren't extra tweets to send.
     assert sum(previous_notif_tweets['to_send'] <= 1)
@@ -49,44 +57,46 @@ def notify(consumer_key, consumer_secret, access_token, access_token_secret):
     else:
 
         # Authenticate the API.
-    	print("Authenticating...")
-    	api = authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret)
+        print("Authenticating...")
+        api = authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret)
 
         # Retweet the tweet that has not yet been sent.
         print("Retweeting...")
-        api.retweet(previous_notif_tweets['tweet_id'][previous_notif_tweets['to_send'] == 1])
+        notif_id = str(previous_notif_tweets[previous_notif_tweets['to_send'] == 1]['tweet_id'].values[0])
+        print(notif_id)
+        api.retweet(id = notif_id)
 
         # Reset the value of `to_send` for the tweet that was just retweeted.
         previous_notif_tweets['to_send'][previous_notif_tweets['to_send'] == 1] = 0
 
         # Read all the past notifactions back to CSV.
-        previous_notif_tweets.to_csv('../data/previous_notif_tweets.csv', index = False)
+        previous_notif_tweets.to_csv('data/previous_notif_tweets.csv', index = False)
 
         print("Done.")
 
 def authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret):
-	"""Authenticate the script's access to the API.
+    """Authenticate the script's access to the API.
 
-	Args:
-		consumer_key (str): The API's consumer key.
-    	consumer_secret (str): The API's consumer secret.
-		access_token (str): The API's access token.
-		access_token_secret (str): The API's access_token_secret
+    Args:
+        consumer_key (str): The API's consumer key.
+        consumer_secret (str): The API's consumer secret.
+        access_token (str): The API's access token.
+        access_token_secret (str): The API's access_token_secret
 
-	Returns:
-		api: The authenticated tweepy API.
-	"""
+    Returns:
+        api: The authenticated tweepy API.
+    """
 
-	# Read in the consumer key and secret.
-	auth = tweepy.OAuthHandler(consumer_key=consumer_key, consumer_secret=consumer_secret)
+    # Read in the consumer key and secret.
+    auth = tweepy.OAuthHandler(consumer_key=consumer_key, consumer_secret=consumer_secret)
 
-	# Set the access token.
-	auth.set_access_token(access_token, access_token_secret)
+    # Set the access token.
+    auth.set_access_token(access_token, access_token_secret)
 
-	# Define the authenticated API.
-	api = tweepy.API(auth)
+    # Define the authenticated API.
+    api = tweepy.API(auth)
 
-	return(api)
+    return(api)
 
 
 # Call the main function.

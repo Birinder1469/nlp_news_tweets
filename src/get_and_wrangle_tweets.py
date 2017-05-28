@@ -18,10 +18,10 @@ import tweepy
 
 
 # Read in the consumer key, consumer secret, access token, and access token secret.
-consumer_key = open("../../auth/twitter/consumer_key.txt").read()[:-1]
-consumer_secret = open("../../auth/twitter/consumer_secret.txt").read()[:-1]
-access_token = open("../../auth/twitter/access_token.txt").read()[:-1]
-access_token_secret = open("../../auth/twitter/access_token_secret.txt").read()[:-1]
+consumer_key = open("../auth/twitter/consumer_key.txt").read()
+consumer_secret = open("../auth/twitter/consumer_secret.txt").read()
+access_token = open("../auth/twitter/access_token.txt").read()
+access_token_secret = open("../auth/twitter/access_token_secret.txt").read()
 
 
 # Define the users of interest.
@@ -97,8 +97,8 @@ def get_and_wrangle(consumer_key, consumer_secret, access_token, access_token_se
     recent_tweets = remove_old_tweets(all_tweets, cutoff = cutoff_time)
 
     # Save the updated, pruned dataset to csv.
-    recent_tweets.to_csv('../data/candidate_tweets.csv', index = False)
-    print("Done.")
+    recent_tweets.to_csv('data/candidate_tweets.csv', index = False)
+    print("Sending tweets to R for analysis.")
 
 
 def authenticate_api(consumer_key, consumer_secret, access_token, access_token_secret):
@@ -247,12 +247,12 @@ def get_past_tweets():
     try:
 
         # If it's not the first run, the file will be present.
-        old_tweets = pd.read_csv('../data/candidate_tweets.csv')
+        old_tweets = pd.read_csv('data/candidate_tweets.csv')
         return(old_tweets)
 
     except:
         # Otherwise, read in a dummy file.
-        old_tweets = pd.read_csv('../data/candidate_tweets_first_run.csv')
+        old_tweets = pd.read_csv('data/candidate_tweets_first_run.csv')
         return(old_tweets)
 
 

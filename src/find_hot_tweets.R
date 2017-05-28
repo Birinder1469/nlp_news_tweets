@@ -8,10 +8,10 @@
 
 
 # Load libraries.
-suppressMessages(library(assertthat))
-suppressMessages(library(lubridate))
-suppressMessages(library(tidyverse))
-suppressMessages(library(tidytext))
+suppressWarnings(suppressMessages(library(assertthat)))
+suppressWarnings(suppressMessages(library(lubridate)))
+suppressWarnings(suppressMessages(library(tidyverse)))
+suppressWarnings(suppressMessages(library(tidytext)))
 
 
 # Define the weights of the notification score function.
@@ -26,10 +26,10 @@ assert_that(sum(conform_weight, favorite_weight, retweet_weight) == 1)
 # Define the parameters of the notification threshold function.
 asymptote <- 0.99  ## At all times, the conformity score of the selected tweet must be in the 99th percentile.
 time_diff_prev_threshold <- 1  ## 1 hour must have passed since the previous notification.
-time_diff_now_threshold <-  ## Any new notifications must be for tweets that have been created in the past hour.
+time_diff_now_threshold <- 1  ## Any new notifications must be for tweets that have been created in the past hour.
 
 # Check that the asymptote is strictly less than 1 (otherwise no tweet will ever be good enough for a notification.)
-assert_that(asymptote < 1)
+suppressMessages(assert_that(asymptote < 1))
 
 
 # `find_hot_tweets` is the main function; it calls the other functions defined below.
@@ -59,7 +59,7 @@ find_hot_tweets <- function(conform_weight = 0.6,
 
                 # Read in the tweets that were previously sent as notifications.
                 #previous_notif_tweets <- #
-                read.csv("../data/previous_notif_tweets.csv")
+                read.csv("data/previous_notif_tweets.csv")
                 
                 #previous_notif_tweets
 
@@ -67,7 +67,7 @@ find_hot_tweets <- function(conform_weight = 0.6,
 
                 # Read in a dummy file.
                 #previous_notif_tweets <- 
-                read.csv("../data/prev_notif_first_run.csv")
+                read.csv("data/prev_notif_first_run.csv")
 
                 #previous_notif_tweets
                 
@@ -89,7 +89,7 @@ find_hot_tweets <- function(conform_weight = 0.6,
         } else {
 
                 # Read in the candidate tweets for the next notification.
-                tweets <- read.csv("../data/candidate_tweets.csv")
+                tweets <- read.csv("data/candidate_tweets.csv")
 
                 # Get one word per row, and clean out uninformative words.
                 cleaned_tweet_words <- clean_tweets(tweets)
@@ -141,7 +141,7 @@ find_hot_tweets <- function(conform_weight = 0.6,
                                 rbind(previous_notif_tweets)
                         
                         # Save it back to CSV, to be read by the notification script.
-                        write.csv(previous_notif_tweets, "../data/previous_notif_tweets.csv", row.names = FALSE)
+                        write.csv(previous_notif_tweets, "data/previous_notif_tweets.csv", row.names = FALSE)
                         
                         print("New tweet saved to notifications.")
                 }
