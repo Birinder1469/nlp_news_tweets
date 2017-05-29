@@ -102,18 +102,25 @@ find_hot_tweets <- function(conform_weight = 0.6,
                 # by other authors. (This finds tweets that are representative of events that everyone
                 # is talking about.)
                 tweets_w_conform_score <- compute_conform_score(cleaned_tweet_words, tweets = tweets_w_time_diff_now)
-
+                
+                # See how many words each tweet shares with the tweet from the previous notification.
+                # (This will help us avoid tweeting about the same event twice in a row.)
+                tweets_w_shared_words_w_prev <- compute_shared_words_w_prev(cleaned_tweet_words,
+                                                                            tweets_w_conform_score,
+                                                                            previous_notif_tweets,
+                                                                            time_now)
+                
                 # Determine which (if any) of the candidate tweets meet the threshold for sending a notification.
-                tweets_w_threshold <- compute_threshold(tweets = tweets_w_conform_score,
+                tweets_w_threshold <- compute_threshold(tweets = tweets_w_shared_words_w_prev,
                                                         time_diff_prev_notif = time_diff_prev_notif,
                                                         asymptote = asymptote,
                                                         time_diff_prev_threshold = time_diff_prev_threshold,
                                                         time_diff_now_threshold = time_diff_now_threshold)
 
-                # If none of the tweets meet the notification threshold, stop.
-                if (sum(tweets_w_threshold$meet_threshold) == 0) {
+                # If fewer than four tweets meet the notification threshold, stop.
+                if (sum(tweets_w_threshold$meet_threshold) < 4) {
                         
-                        print("No tweets meet the threshold.")
+                        print("Too few tweets meet the threshold.")
                         return(NULL)
 
                 # Otherwise...
@@ -133,8 +140,14 @@ find_hot_tweets <- function(conform_weight = 0.6,
                                 filter(notif_score == max(notif_score))
                         
                         # Specify that the notification has not yet been sent.
-                        best_tweet <- best_tweet %>% mutate(to_send = 1,
-                                                            notif_time = strftime(time_now, tz = "GMT", format = "%Y-%m-%d %H:%M:%S"))
+                        best_tweet <- best_tweet %>%
+                                
+                                mutate(to_send = 1,
+                                       notif_time = strftime(time_now, tz = "GMT", format = "%Y-%m-%d %H:%M:%S")) %>% 
+                                
+                                # And get rid of the column showing the number of shared words with the previous
+                                select(-shared_words_w_prev)
+                        
                         
                         # Prepend the best tweet to the dataframe containing the tweets that were previously sent as notifications.
                         previous_notif_tweets <- best_tweet %>%
@@ -214,6 +227,36 @@ compute_conform_score <- function(cleaned_tweet_words, tweets) {
 }
 
 
+#' For each tweet, determine how many words it shares with the tweet from the previous notification.
+#'
+#' @param cleaned_tweet_words A dataframe with one row per word, excluding stop words and other uninformative words.
+#' @param tweets The full input dataframe, with one row per tweet.
+#' @param previous_notif_tweets The dataframe with each of the tweets from the previous notifications.
+#' @return The full tweets dataframe, including a new column that shows the number of shared words with the tweet from the previous notification.
+#' @examples
+#' compute_shared_words_w_prev(cleaned_tweet_words, tweets, previous_notif_tweets)
+compute_shared_words_w_prev <- function(cleaned_tweet_words, tweets, previous_notif_tweets, time_now) {
+        
+        # Get the most recent tweet.
+        prev_notif <- previous_notif_tweets %>%
+                mutate(time_diff_prev_notif = as.numeric(difftime(time_now, parse_date_time(notif_time, "Ymd HMS"), units = "hours"))) %>% 
+                arrange(time_diff_prev_notif) %>% 
+                head(1)
+        
+        # Unnest its words.
+        cleaned_prev_notif_words <- clean_tweets(prev_notif)
+        
+        # Compute the number of shared words between each tweet and that of the previous notification.
+        tweets_w_shared_words_w_prev <- cleaned_tweet_words %>%
+                inner_join(cleaned_prev_notif_words) %>% 
+                group_by(tweet_url) %>% 
+                summarise(shared_words_w_prev = sum(meet_threshold)) %>% 
+                right_join(tweets)
+        
+        return(tweets_w_shared_words_w_prev)
+}
+
+
 #' For each tweet, determine whether it meets the threshold for notifying the user.
 #'
 #' @param tweets The full tweets dataframe, including a column that shows a measure of conformity.
@@ -261,8 +304,10 @@ compute_threshold <- function(tweets,
         # Determine which tweets meet the threshold.
         tweets_w_threshold <- tweets_w_perc
         tweets_w_threshold$meet_threshold <- 0
-        tweets_w_threshold$meet_threshold[tweets_w_threshold$percent_rank > conform_threshold &
-                                                  tweets_w_threshold$time_diff_now < time_diff_now_threshold] <- 1
+        tweets_w_threshold$meet_threshold[tweets_w_threshold$percent_rank > conform_threshold
+                                          & tweets_w_threshold$time_diff_now < time_diff_now_threshold
+                                          & (tweets_w_threshold$shared_words_w_prev < 1 
+                                             | is.na(tweets_w_threshold$shared_words_w_prev))] <- 1
         
         return(tweets_w_threshold)
 
