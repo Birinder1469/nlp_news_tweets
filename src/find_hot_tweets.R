@@ -197,7 +197,6 @@ compute_conform_score <- function(cleaned_tweet_words, tweets) {
                 # For each word, count the number of unique authors using that word.
                 group_by(word) %>%
                 summarise(distinct_authors = n_distinct(screen_name)) %>%
-                #arrange(desc(distinct_authors)) %>%
 
                 # Right join with the dataframe containing one row per word.
                 right_join(cleaned_tweet_words) %>%
