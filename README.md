@@ -30,8 +30,13 @@ I'm working on [News360](https://news360.com/)'s NLP [test task](https://docs.go
 
 ### To do
 
-- Set up cron job.
 - Validate / tweak parameters.
 - Write a blog post explaining my methodology.
 - Add testing and package management.
 - Add license.
+
+To test it for yourself, clone the repo, set up a Twitter API, and type this in Terminal:
+
+`watch -n 600 run_all.sh`
+
+This will run the main script every ten minutes.

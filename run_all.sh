@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # run_all shell script
 # Created by David Laing, May 2017
 #
@@ -21,8 +21,3 @@ Rscript src/find_hot_tweets.R
 
 # If a tweet has been selected, notify the user.
 python src/notify.py
-
-# Rerun the script in a minute.
-at now + 1 minute << END
-"$0" "$@"
-END
