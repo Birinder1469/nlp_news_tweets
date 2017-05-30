@@ -4,11 +4,13 @@ I'm working on [News360](https://news360.com/)'s NLP [test task](https://docs.go
 
 My Twitter bot is now in testing, and it's viewable here: [https://twitter.com/news_nlp_bot](https://twitter.com/news_nlp_bot).
 
-To test my script for yourself, feel free to clone this repo, set up a Twitter API, and type this in Terminal:
+To understand my methodology, feel free to [read](https://github.com/laingdk/nlp_news_tweets/blob/master/src/get_and_wrangle_tweets.py) [my](https://github.com/laingdk/nlp_news_tweets/blob/master/src/find_hot_tweets.R) [scripts](https://github.com/laingdk/nlp_news_tweets/blob/master/src/notify.py), or read my [explanation](https://github.com/laingdk/nlp_news_tweets/blob/master/doc/methodology.md) of the main challenges I faced and decisions I made.
+
+To test my script for yourself, clone this repo, set up a Twitter API, and type this in Terminal:
 
 `watch -n 600 bash run_all.sh`
 
-This will run the main script every ten minutes as long as you keep Terminal running.
+This will run the main script every ten minutes, as long as you keep the process running.
 
 ## Progress
 
