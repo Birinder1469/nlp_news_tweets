@@ -8,9 +8,9 @@ The goal of this project was to scan all tweets authored by some 25 news publica
 
 Twitter's API provides many attributes for each [tweet](https://dev.twitter.com/overview/api/tweets) and each [user](https://dev.twitter.com/overview/api/users). I decided to keep things simple: I took each tweet's id, its creation time, its text, its favorite count, its retweet count, and its retweet status (i.e. whether or not it was itself a retweet). I also took each tweet's author's username and screen name.
 
-Most of these tweets link to full news stories on their respective publication's webpages. I considered scraping the text of the full stories using Python [Goose](https://github.com/grangier/python-goose), but decided to see how far I could get with the text of the tweets alone, since I anticipated there being some difficulties getting around paywalls. Not to mention that text data fram HTML can be quite messy.
+Most of these tweets link to full news stories on their respective publication's webpages. I considered scraping the text of the full stories using Python [Goose](https://github.com/grangier/python-goose), but decided to see how far I could get with the text of the tweets alone, since I anticipated there being some difficulties getting around paywalls. Not to mention that data from HTML can be quite messy.
 
-As for how *much* data to store, I decided to keep only the tweets from the past 24 hours. This usually amounts to about 3000 tweets.
+As for how *much* data to store, I decided to keep only the tweets from the past 24 hours. This usually amounts to about 3500 tweets.
 
 2. How to identify important news stories?
 ------------------------------------------
@@ -70,9 +70,9 @@ The second problem with the vectorize/cluster approach is that a lot of informat
 
 ![](../results/vectorized_cluster.png)
 
-Now it's the *least* important tweets — the ones that *don't* use the most common words in the corpus — that form the most distinct cluster. As a result, the tweets that we actually care about have now been scattered across the feature space. Their use of the most common words in the corpus has caused their differences to be exaggerated and their similarities to be diminished. This is the exact opposite of what I wanted.
+Now it's the *least* important tweets — the ones that *don't* use the most common words in the corpus — that form the most distinct cluster. As a result, the tweets that we actually care about have been scattered across the feature space. Their use of the most common words in the corpus has caused their differences to be exaggerated and their similarities to be diminished. This is the exact opposite of what I wanted.
 
-Now, I could have vectorized the tweets such that the term-document matrix contained a column for every distinct word that appeared in the dataset. This would have solved the problem we see in the graph above. But that would have created a vastly high-dimensional feature space, which would have made the distances between tweets almost meaningless. So I tried a different strategy. First I transformed the original data to get one row for each word in the corpus:
+Now, I could have vectorized the tweets such that the document-term matrix contained a column for every distinct word that appeared in the dataset. This would have solved the problem we see in the graph above. But that would have created a vastly high-dimensional feature space, which would have made the distances between tweets almost meaningless. So I tried a different strategy. First I transformed the original data to get one row for each word in the corpus:
 
 ``` r
 # Get one word per row.
@@ -90,6 +90,25 @@ cleaned_tweet_words <- tweet_words %>%
                word != "t.co",
                word != "rt")
 ```
+
+The above code turns this...
+
+| screen\_name | text                                                                                               |
+|:-------------|:---------------------------------------------------------------------------------------------------|
+| SFGate       | Color postcards show pre-earthquake life in SF <https://t.co/6xNuHeV2s4> <https://t.co/NWhCXDxgse> |
+
+...into this:
+
+| screen\_name | word       |
+|:-------------|:-----------|
+| SFGate       | nwhcxdxgse |
+| SFGate       | 6xnuhev2s4 |
+| SFGate       | sf         |
+| SFGate       | life       |
+| SFGate       | earthquake |
+| SFGate       | pre        |
+| SFGate       | postcards  |
+| SFGate       | color      |
 
 Then I simply counted the number of distinct authors who had used each word in the corpus, and added those counts up word-wise for each tweet:
 
@@ -111,51 +130,45 @@ breaking_tweets <- cleaned_tweet_words %>%
         right_join(tweets)
 ```
 
+I call this the conformity score. It's a measure of how much a tweet conforms to tweets by other authors; it's a proxy for whether the tweet is talking about What Everyone Is Talking About. (The reason I counted distinct authors rather than distinct tweets is that some authors have specific formats for their tweets where similar words occur very frequently. We shouldn't care when a tweet conforms to the language in other tweets by its own author.)
+
 Let's take a look at the tweets in my current dataset that have the highest conformity score:
 
-``` r
-breaking_tweets %>%
-        arrange(desc(conform_score)) %>% 
-        select(screen_name, created_at, conform_score, text) %>% 
-        head() %>%
-        kable()
-```
-
-| screen\_name     | created\_at                    |  conform\_score| text                                                                                                                                         |
-|:-----------------|:-------------------------------|---------------:|:---------------------------------------------------------------------------------------------------------------------------------------------|
-| BBCNews          | Mon May 29 15:43:04 +0000 2017 |             135| RT @BBCBreaking: Golf star Tiger Woods has been arrested on a drink-driving charge in Florida, police say <https://t.co/eKVQW3snjD>          |
-| AP               | Tue May 30 05:29:52 +0000 2017 |             132| BREAKING: A source close to the family of former Panamanian dictator Manuel Noriega says he has died at age 83.                              |
-| nytimes          | Tue May 30 05:32:09 +0000 2017 |             129| Breaking News: Manuel Noriega is dead at 83. The brash Panamanian dictator was ousted in a U.S. invasion in 1989. <https://t.co/aY5UAzBPao>   |                                                                                                                                              |
-| CNN              | Mon May 29 15:43:10 +0000 2017 |             129| Golf legend Tiger Woods arrested early Monday on suspicion of DUI in Jupiter, Florida, police say… <https://t.co/ztKlh4i2cN>                 |
-| CNN              | Tue May 30 05:44:27 +0000 2017 |             128| JUST IN: Former Panamanian dictator Manuel Noriega has died at a Panama City hospital at age 83… <https://t.co/Pqm6QvXsQi>                   |
-| TheSun           | Mon May 29 09:52:01 +0000 2017 |             126| Survivor of 7/7 found dead hours after Manchester bombing 'didn’t want to live in a world where attacks continue’… <https://t.co/g5pK09Try3> |
+| screen\_name | created\_at                    |  conform\_score| text                                                                                                                                           |
+|:-------------|:-------------------------------|---------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------|
+| TIME         | Tue May 30 13:10:07 +0000 2017 |             173| Trump condemns Portland attack, Manuel Noriega dies and Tiger Woods blames meds for DUI charge. What to know today: <https://t.co/LwyomWVe7x>  |
+| AP           | Tue May 30 16:20:12 +0000 2017 |             160| BREAKING: City of Cleveland fires police officer who shot 12-year-old Tamir Rice in 2014, suspends his partner for 10 days.                    |
+| ABC          | Tue May 30 02:09:14 +0000 2017 |             157| Iraqi officials say 10 killed, 22 injured after car bomb explodes outside popular ice cream shop in central Baghdad… <https://t.co/RhODTjKIDT> |
+| BBCNews      | Tue May 30 14:57:29 +0000 2017 |             152| RT @BBCBreaking: Golfer Tiger Woods was found asleep at the wheel of his car, engine running, police report says - US media <https://t.co/q0>… |
+| CNN          | Tue May 30 11:20:34 +0000 2017 |             152| ISIS claims responsibility for a car bomb explosion outside an ice cream shop in Baghdad that killed at least 10… <https://t.co/tRzgpclJRN>    |
+| CNN          | Tue May 30 04:30:01 +0000 2017 |             152| ISIS claims responsibility for a car bomb explosion outside an ice cream shop in Baghdad that killed at least 10… <https://t.co/g8jpWrQ8Qk>    |
 
 These tend to be fairly big stories. That's because the words used in these tweets are used by many distinct authors in the dataset. You might think my bot would simply retweet the tweet with the highest conformity score, but it's not that simple.
 
 3. How to decide when to send a notification?
 ---------------------------------------------
 
-The idea for this project was that I was to send on the best tweet from a breaking news story onto a separate module, which would send a push notification. The thing is, you don't want to send push notifications very often — maximum twice a day. But the script needs to make a decision *every ten minutes* about whether or not to send a notification. And when a big story breaks, we want to send the notification as soon as possible. So whatever function you use to decide whether to send a notification, the function needs to include three pieces of information:
+The goal for this project was to send the best tweet from a breaking news story to a separate module, which would send a push notification. The script needs to make a decision every ten minutes about whether or not to send a notification. And when a big story breaks, we want to send the notification as soon as possible. But we don't want to bother the users — we should send a maximum of two notifications per day. So whatever function we use to decide whether to send a notification, the function needs to include three pieces of information:
 
 1.  How big is the story? We'll only send notifications for big stories that everyone is talking about.
 2.  How long has it been since the last notification was sent? In the flurry of tweets that are authored in the hours after a big story breaks, we don't want to keep sending notifications about that story just because it's big.
 3.  What stories have we already sent notifications for? Sometimes a good tweet for a big story will be authored many hours after the story first broke; we don't want to send that tweet as a notification.
 
-In my script, a tweet has to meet several conditions for it to qualify as worthy of notification. The first is that it must be one of the most highly conforming tweets of the past 24 hours. Namely, it must have a conformity score that is at least in the 99th percentile. This will be the asymptote of the conformity threshold — call it *m* for 'minimum'.
+In my script, a tweet has to meet several conditions for it to qualify as worthy of notification. The first is that it must be one of the most highly conforming tweets of the past 24 hours. Namely, it must have a conformity score that is at least in the 99th percentile. This will be the asymptote of the conformity threshold — call it *a*.
 
 `asymptote <-  0.99`
 
-*m* = 0.99
+*a* = 0.99
 
-The 99th percentile is the absolute minimum threshold that a tweet must meet, but this requirement is stricter the more recently a notification has been sent. To set the minimum amount of time that must pass after a notification has been sent, before another one will be sent, we just need to add 0.01 (or 1 − *m*) to that asymptote to push it up to the 100th percentile. But the value we add to the asymptote can decrease as more time passes. We can use a reciprocal function, like so:
+The 99th percentile is the absolute minimum threshold that a tweet must meet, but this requirement is stricter the more recently a notification has been sent. (If we send a notification a 2pm, then we'd better have a very good reason to send another one at 3pm.) To set the minimum amount of time that must pass after a notification has been sent, before another one will be sent, we just need to add 1 − *a* to that asymptote to push it above the 100th percentile, where no tweet can reach. But the value we add to the asymptote can decrease as more time passes, so that we're less stringent if we haven't sent a notification in the past 12 hours, say. To achieve this, we can use a reciprocal function:
 
-$C = m + (1-m)\\left(\\frac{t\_{min}}{t\_{prev}}\\right)$,
+$C = a + (1-a)\\left(\\frac{t\_{min}}{t\_{prev}}\\right)$,
 
-where *C* is the conformity score percentile threshold function, *t*<sub>*m**i**n*</sub> is the minimum amount of time (in hours) that must pass before a new notification is sent, and *t*<sub>*p**r**e**v*</sub> is the amount of time that has passed since the previous notification was sent. Below you can see two versions of the threshold function. The blue curve has *t*<sub>*m**i**n*</sub> = 1, and the green curve has *t*<sub>*m**i**n*</sub> = 5. You can see that if the *t*<sub>*m**i**n*</sub> were set to 5, we would be forcing the system to wait a full five hours before any tweet could have a chance of being sent as a notification. After that, the minimum percentile decreases steadily as time passes.
+where *C* is the conformity score percentile threshold function, *t*<sub>*m**i**n*</sub> is the minimum amount of time (in hours) that must pass before a new notification is sent, and *t*<sub>*p**r**e**v*</sub> is the amount of time that has passed since the previous notification was sent. Below, you can see two versions of the threshold function. The blue curve has *t*<sub>*m**i**n*</sub> = 1, and the green curve has *t*<sub>*m**i**n*</sub> = 5. You can see that if the *t*<sub>*m**i**n*</sub> were set to 5, we would be forcing the system to wait a full five hours before any tweet could have a chance of being sent as a notification. After that, the minimum percentile decreases steadily as time passes.
 
 ![](../results/threshold_graph.png)
 
-There are a couple more checks that the tweets have to satisfy in order to be considered for notification. First, the tweet must have been created in the past hour. I don't particularly care if a tweet from 13 hours ago is in the 99.9th percentile for its conformity score — that story is old news. I only care if there's a *new* story that everyone is talking about. Second, the tweet not share any (non-stop-)words with the tweet that was sent as the previous notification. This helps guard against notifying the user of the same story several hours later, when people are still talking about that story on Twitter. Finally, the tweet must not be alone; that is, I require a minimum of four tweets to cross the prior thresholds, just as a final check to ensure that there is a *new* story that everyone is talking about. Once there are a minimum of four tweets that pass these tests, they're sent on to one last function to determine which one is the best for the notification.
+There are a few more checks that the tweets have to satisfy in order to be considered for notification. First, the tweet must have been created in the past hour. I don't particularly care if a tweet from 13 hours ago is in the 99.9th percentile for its conformity score — that story is old news. I only care if there's a *new* story that everyone is talking about. Second, the tweet must not share any (non-stop-)words with the tweet that was sent as the previous notification. This helps guard against notifying the user of the same story several hours later, when people are still talking about that story on Twitter. Finally, the tweet must not be alone; that is, I require a minimum of four tweets to cross the prior thresholds, just as a final check to ensure that there is a *new* story that everyone is talking about. Once there are a minimum of four tweets that pass these tests, they're sent on to one last function to determine which one is the best for the notification.
 
 4. How to select the best tweet for the notification?
 -----------------------------------------------------
