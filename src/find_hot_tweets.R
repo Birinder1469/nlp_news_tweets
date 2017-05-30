@@ -296,10 +296,10 @@ compute_threshold <- function(tweets,
         tweets_w_perc <- tweets %>%
                 mutate(percent_rank = percent_rank(conform_score))
 
-        # Set the threshold. (The 0.01 sets the time threshold to 100%. That is, the threshold requires
+        # Set the threshold. (The 1-asymptote sets the time threshold to 100%. That is, the threshold requires
         # the tweet to have a conformity score that is above the 100th percentile until the time threshold has been reached.
-        # See the README for a visualization of the threshold function, and it will make more sense.)
-        conform_threshold <- asymptote + 0.01*(time_diff_prev_threshold/time_diff_prev_notif)
+        # See the documentation for a visualization of the threshold function, and it will make more sense.)
+        conform_threshold <- asymptote + (1-asymptote)*(time_diff_prev_threshold/time_diff_prev_notif)
         
         # Determine which tweets meet the threshold.
         tweets_w_threshold <- tweets_w_perc
