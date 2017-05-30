@@ -190,7 +190,7 @@ The 99th percentile is the absolute minimum threshold that a tweet must meet, bu
 
 $C = a + (1-a)\left(\frac{t_{min}}{t_{prev}}\right)$,
 
-where $C$ is the conformity score percentile threshold function, $t_{min}$ is the minimum amount of time (in hours) that must pass before a new notification is sent, and $t_{prev}$ is the amount of time that has passed since the previous notification was sent. Below, you can see two versions of the threshold function. The blue curve has $t_{min} = 1$, and the green curve has $t_{min} = 5$. You can see that if the $t_{min}$ were set to $5$, we would be forcing the system to wait a full five hours before any tweet could have a chance of being sent as a notification. After that, the minimum percentile decreases steadily as time passes.
+where $C$ is the conformity score percentile threshold function, $t_{min}$ is the minimum amount of time (in hours) that must pass before a new notification is sent, and $t_{prev}$ is the amount of time that has passed since the previous notification was sent. Below, you can see two versions of the threshold function. The blue curve has $t_{min} = 1$, and the red curve has $t_{min} = 5$. You can see that if the $t_{min}$ were set to $5$, we would be forcing the system to wait a full five hours before any tweet could have a chance of being sent as a notification. After that, the minimum percentile decreases steadily as time passes.
 
 ```{r threshold, warning=FALSE, include=FALSE}
 time_diff_prev_threshold1 <- 1
@@ -209,11 +209,14 @@ data5 <- data.frame(time_diff_prev_notif = time_diff_prev_notif, threshold = thr
 ggplot(data1) +
         geom_line(aes(x = time_diff_prev_notif, y = threshold), color = "blue") +
         geom_vline(xintercept = time_diff_prev_threshold1, color = "blue", linetype = "dotted") +
-        geom_line(data = data5, aes(x = time_diff_prev_notif, y = threshold), color = "green") +
-        geom_vline(xintercept = time_diff_prev_threshold5, color = "green", linetype = "dotted") +
+        geom_line(data = data5, aes(x = time_diff_prev_notif, y = threshold), color = "red") +
+        geom_vline(xintercept = time_diff_prev_threshold5, color = "red", linetype = "dotted") +
         geom_hline(yintercept = asymptote, linetype = "dashed") +
-        annotate(geom='text', x=15, y=0.9975, label=TeX("$C = m + (1-m)\\left(\\frac{t_{min}}{t_{prev}}\\right)$", output='character'), parse=TRUE) +
-        scale_y_continuous(limits = c(0.99, 1), labels = percent) +
+        annotate(geom='text', x=15, y=0.9975, label=TeX("$C = a + (1-a)\\left(\\frac{t_{min}}{t_{prev}}\\right)$", output='character'), parse=TRUE) +
+        annotate(geom='text', x=25, y=0.9895, label=TeX("$a = 0.99$", output='character'), parse=TRUE) +
+        annotate(geom='text', x=1, y=1, label=TeX("$t_{min} = 1$", output='character'), parse=TRUE, color = "blue") +
+        annotate(geom='text', x=5, y=1, label=TeX("$t_{min} = 5$", output='character'), parse=TRUE, color = "red") +
+        scale_y_continuous(limits = c(0.9895, 1), labels = percent) +
         labs(subtitle="After a notification is sent, how long to wait before sending another?", title="Conformity score percentile threshold function") +
         ylab("Conformity score percentile threshold (C)") +
         xlab("Hours since previous notification (t_prev)") +

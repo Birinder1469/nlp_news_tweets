@@ -93,22 +93,27 @@ cleaned_tweet_words <- tweet_words %>%
 
 The above code turns this...
 
-| screen\_name | text                                                                                               |
-|:-------------|:---------------------------------------------------------------------------------------------------|
-| SFGate       | Color postcards show pre-earthquake life in SF <https://t.co/6xNuHeV2s4> <https://t.co/NWhCXDxgse> |
+| screen\_name | text                                                                                                                                          |
+|:-------------|:----------------------------------------------------------------------------------------------------------------------------------------------|
+| latimes      | Pentagon successfully tests missile defense system amid rising concerns about North Korea <https://t.co/f6h7XMgqop> <https://t.co/4PQR9ZqRWv> |
 
 ...into this:
 
-| screen\_name | word       |
-|:-------------|:-----------|
-| SFGate       | nwhcxdxgse |
-| SFGate       | 6xnuhev2s4 |
-| SFGate       | sf         |
-| SFGate       | life       |
-| SFGate       | earthquake |
-| SFGate       | pre        |
-| SFGate       | postcards  |
-| SFGate       | color      |
+| screen\_name | word         |
+|:-------------|:-------------|
+| latimes      | 4pqr9zqrwv   |
+| latimes      | f6h7xmgqop   |
+| latimes      | korea        |
+| latimes      | north        |
+| latimes      | concerns     |
+| latimes      | rising       |
+| latimes      | amid         |
+| latimes      | system       |
+| latimes      | defense      |
+| latimes      | missile      |
+| latimes      | tests        |
+| latimes      | successfully |
+| latimes      | pentagon     |
 
 Then I simply counted the number of distinct authors who had used each word in the corpus, and added those counts up word-wise for each tweet:
 
@@ -164,7 +169,7 @@ The 99th percentile is the absolute minimum threshold that a tweet must meet, bu
 
 $C = a + (1-a)\\left(\\frac{t\_{min}}{t\_{prev}}\\right)$,
 
-where *C* is the conformity score percentile threshold function, *t*<sub>*m**i**n*</sub> is the minimum amount of time (in hours) that must pass before a new notification is sent, and *t*<sub>*p**r**e**v*</sub> is the amount of time that has passed since the previous notification was sent. Below, you can see two versions of the threshold function. The blue curve has *t*<sub>*m**i**n*</sub> = 1, and the green curve has *t*<sub>*m**i**n*</sub> = 5. You can see that if the *t*<sub>*m**i**n*</sub> were set to 5, we would be forcing the system to wait a full five hours before any tweet could have a chance of being sent as a notification. After that, the minimum percentile decreases steadily as time passes.
+where *C* is the conformity score percentile threshold function, *t*<sub>*m**i**n*</sub> is the minimum amount of time (in hours) that must pass before a new notification is sent, and *t*<sub>*p**r**e**v*</sub> is the amount of time that has passed since the previous notification was sent. Below, you can see two versions of the threshold function. The blue curve has *t*<sub>*m**i**n*</sub> = 1, and the red curve has *t*<sub>*m**i**n*</sub> = 5. You can see that if the *t*<sub>*m**i**n*</sub> were set to 5, we would be forcing the system to wait a full five hours before any tweet could have a chance of being sent as a notification. After that, the minimum percentile decreases steadily as time passes.
 
 ![](../results/threshold_graph.png)
 
