@@ -20,11 +20,11 @@ This will run the main script every ten minutes, as long as you keep the process
 - Write script to identify tweets that are worthy of notification.
 - Write bash script for the whole pipeline.
 - Write script to notify users (by retweeting the selected tweet from the API's authenticated account).
+- Write a blog post explaining my methodology.
 
 ### In progress
 
 - Validate / tweak parameters.
-- Write a blog post explaining my methodology.
 
 ### To do, later
 
