@@ -243,14 +243,16 @@ compute_shared_words_w_prev <- function(cleaned_tweet_words, tweets, previous_no
                 arrange(time_diff_prev_notif) %>% 
                 head(1)
         
-        # Unnest its words.
-        cleaned_prev_notif_words <- clean_tweets(prev_notif)
+        # Unnest its words, and keep only unique words.
+        cleaned_prev_notif_words <- clean_tweets(prev_notif) %>%
+                distinct(word, .keep_all = TRUE) %>% 
+                select(word, meet_threshold)
         
         # Compute the number of shared words between each tweet and that of the previous notification.
         tweets_w_shared_words_w_prev <- cleaned_tweet_words %>%
-                inner_join(cleaned_prev_notif_words) %>% 
+                left_join(cleaned_prev_notif_words, by = "word") %>% 
                 group_by(tweet_url) %>% 
-                summarise(shared_words_w_prev = sum(meet_threshold)) %>% 
+                summarise(shared_words_w_prev = sum(meet_threshold, na.rm = TRUE)) %>% 
                 right_join(tweets)
         
         return(tweets_w_shared_words_w_prev)
@@ -304,9 +306,9 @@ compute_threshold <- function(tweets,
         # Determine which tweets meet the threshold.
         tweets_w_threshold <- tweets_w_perc
         tweets_w_threshold$meet_threshold <- 0
-        tweets_w_threshold$meet_threshold[tweets_w_threshold$percent_rank > conform_threshold
-                                          & tweets_w_threshold$time_diff_now < time_diff_now_threshold
-                                          & (tweets_w_threshold$shared_words_w_prev < 1 
+        tweets_w_threshold$meet_threshold[(tweets_w_threshold$percent_rank > conform_threshold)
+                                          & (tweets_w_threshold$time_diff_now < time_diff_now_threshold)
+                                          & (tweets_w_threshold$shared_words_w_prev < 2 
                                              | is.na(tweets_w_threshold$shared_words_w_prev))] <- 1
         
         return(tweets_w_threshold)
